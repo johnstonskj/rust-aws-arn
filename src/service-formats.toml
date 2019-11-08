@@ -1,0 +1,11 @@
+[[format]]
+name = "iam"
+resource_type = "user"
+partition_required = true
+region_required = false
+region_wc_allowed = false
+account_id_required = true
+account_wc_allowed = false
+format = "Path"
+resource_id_wc_allowed = false
+qualifier_expected = false
