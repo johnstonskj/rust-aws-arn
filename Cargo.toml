@@ -3,6 +3,7 @@ name = "aws-arn"
 version = "0.1.0"
 authors = ["Simon Johnston <johnstonskj@gmail.com>"]
 edition = "2018"
+description = "Provides types, builders, and other helpers to manipulate AWS Amazon Resource Name (ARN) strings"
 documentation = "https://docs.rs/aws-arn/"
 repository = "https://github.com/johnstonskj/rust-aws-arn.git"
 license = "MIT"

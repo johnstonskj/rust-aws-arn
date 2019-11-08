@@ -1,5 +1,5 @@
 /*!
-Provides a type and helpers to manipulate AWS Amazon Resource Name (ARN) strings.
+Provides types, builders, and other helpers to manipulate AWS Amazon Resource Name (ARN) strings.
 
 For more, see the AWS documentation for [Amazon Resource Name
 (ARN)](https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html).

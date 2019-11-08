@@ -1,5 +1,5 @@
 # rust-aws-arn
-Tools to manipulate AWS Amazon Resource Name (ARN) strings.
+Provides types, builders, and other helpers to manipulate AWS Amazon Resource Name (ARN) strings.
 
 ![MIT License](https://img.shields.io/badge/license-mit-118811.svg)
 ![Minimum Rust Version](https://img.shields.io/badge/Min%20Rust-1.38-green.svg)
