@@ -72,14 +72,14 @@ fn load_formats() -> HashMap<String, ServiceArnFormat> {
 
 fn make_key(s_name: &str, resource: &Resource) -> String {
     let resource_type = match resource {
-        Resource::TypedId { the_type, id } => {
+        Resource::TypedId { the_type, id: _ } => {
             let new_type = the_type.to_string();
             Some(new_type)
         }
         Resource::QTypedId {
             the_type,
-            id,
-            qualifier,
+            id: _,
+            qualifier: _,
         } => {
             let new_type = the_type.clone();
             Some(new_type)

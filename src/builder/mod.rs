@@ -78,14 +78,14 @@ impl ResourceBuilder {
                     the_type: new_type,
                 }
             }
-            Resource::TypedId { the_type, id } => {
+            Resource::TypedId { the_type: _, id } => {
                 self.resource = Resource::TypedId {
                     id: id.clone(),
                     the_type: new_type,
                 }
             }
             Resource::QTypedId {
-                the_type,
+                the_type: _,
                 id,
                 qualifier,
             } => {
@@ -145,7 +145,7 @@ impl ResourceBuilder {
             Resource::QTypedId {
                 the_type,
                 id,
-                qualifier,
+                qualifier: _,
             } => {
                 self.resource = Resource::QTypedId {
                     id: id.clone(),

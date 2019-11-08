@@ -53,11 +53,19 @@ pub enum Resource {
     /// Matches `resource-id(/resource-id)*`
     Path(String),
     /// Matches `resource-type:resource-id`
-    TypedId { the_type: String, id: String },
+    TypedId {
+        /// The `resource-type` component of this resource
+        the_type: String,
+        /// The `resource-id` component of this resource
+        id: String,
+    },
     /// Matches `resource-type:resource-id:qualifier`
     QTypedId {
+        /// The `resource-type` component of this resource
         the_type: String,
+        /// The `resource-id` component of this resource
         id: String,
+        /// The `qualifier` component of this resource
         qualifier: String,
     },
 }
