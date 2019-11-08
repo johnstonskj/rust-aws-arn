@@ -24,7 +24,7 @@ println!("ARN: '{}'", arn);
 This should print `ARN: 'arn:aws:lambda:us-east-2:123456789012:layer:my-layer:3'`.
 */
 
-use crate::{Resource, ARN};
+use crate::{Resource, ARN, WILD};
 
 ///
 /// Builder type for the resource portion of an ARN.
@@ -52,7 +52,7 @@ impl ResourceBuilder {
 
     /// Construct a resource with a wildcard `id`.
     pub fn any() -> Self {
-        Self::new("*")
+        Self::new(WILD)
     }
 
     /// Add the specific `type` to this resource (path-like style).
@@ -62,7 +62,7 @@ impl ResourceBuilder {
         match &self.resource {
             Resource::Any => {
                 self.resource = Resource::TypedId {
-                    id: "*".to_string(),
+                    id: WILD.to_string(),
                     the_type: new_type,
                 }
             }
@@ -116,22 +116,22 @@ impl ResourceBuilder {
         match &self.resource {
             Resource::Any => {
                 self.resource = Resource::QTypedId {
-                    id: "*".to_string(),
-                    the_type: "*".to_string(),
+                    id: WILD.to_string(),
+                    the_type: WILD.to_string(),
                     qualifier: new_qualifier,
                 }
             }
             Resource::Id(id) => {
                 self.resource = Resource::QTypedId {
                     id: id.clone(),
-                    the_type: "*".to_string(),
+                    the_type: WILD.to_string(),
                     qualifier: new_qualifier,
                 }
             }
             Resource::Path(path) => {
                 self.resource = Resource::QTypedId {
                     id: path.clone(),
-                    the_type: "*".to_string(),
+                    the_type: WILD.to_string(),
                     qualifier: new_qualifier,
                 }
             }
@@ -197,7 +197,7 @@ impl ArnBuilder {
 
     /// Set `region` to a wildcard for this ARN.
     pub fn in_any_region(&mut self) -> &mut Self {
-        self.in_region("*")
+        self.in_region(WILD)
     }
 
     /// Set a specific `account` for this ARN.
@@ -213,7 +213,7 @@ impl ArnBuilder {
 
     /// Set `account` to a wildcard for this ARN.
     pub fn in_any_account(&mut self) -> &mut Self {
-        self.in_account("*")
+        self.in_account(WILD)
     }
 
     /// Set a specific `resource` for this ARN.

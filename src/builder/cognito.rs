@@ -10,12 +10,17 @@ use crate::ARN;
 // ------------------------------------------------------------------------------------------------
 
 ///
+/// The service name portion of the ARN.
+///
+pub const SERVICE_NAME: &str = "cognito-identity";
+
+///
 /// From [doc](https://docs.aws.amazon.com/IAM/latest/UserGuide/list_amazoncognitoidentity.html#amazoncognitoidentity-resources-for-iam-policies)
 ///
 /// `arn:${Partition}:cognito-identity:${Region}:${Account}:identitypool/${IdentityPoolId}`
 ///
 pub fn identity_pool(partition: &str, region: &str, account: &str, identity_pool_id: &str) -> ARN {
-    ArnBuilder::new("cognito-identity")
+    ArnBuilder::new(SERVICE_NAME)
         .in_partition(partition)
         .in_region(region)
         .owned_by(account)

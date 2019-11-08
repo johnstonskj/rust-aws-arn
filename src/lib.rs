@@ -30,7 +30,7 @@ use std::str::FromStr;
 ///
 /// Contains the resource part of the ARN. There **mus** be a `resource-id`, there **may* be
 /// a `resource-type`, and there **may** be a qualifier. The separator between type and id
-/// may be prefix-like (':') or path-like ('/').
+/// may be prefix-like (':') or path-like (PATH_SEPARATOR).
 ///
 /// > The content of this part of the ARN varies by service. A resource identifier can be the name
 /// > or ID of the resource (for example, user/Bob or instance/i-1234567890abcdef0) or a
@@ -112,11 +112,6 @@ pub struct ARN {
 }
 
 ///
-/// The wildcard character.
-///
-pub const WILD: &str = "*";
-
-///
 /// Errors that may arise parsing an ARN with `FromStr::from_str()`.
 ///
 #[derive(Debug, PartialEq)]
@@ -153,9 +148,15 @@ pub enum ArnError {
 
 const ARN_PREFIX: &str = "arn";
 
-const ARN_SEPARATOR: &str = ":";
+const ARN_SEPARATOR: char = ':';
+
+const ARN_SEPARATOR_STR: &str = ":";
 
 const DEFAULT_PARTITION: &str = "aws";
+
+const PATH_SEPARATOR: char = '/';
+
+const WILD: &str = "*";
 
 lazy_static! {
     static ref PARTITION: Regex = Regex::new(r"^aws(\-[a-zA-Z][a-zA-Z0-9\-]+)?$").unwrap();
@@ -200,7 +201,7 @@ impl Display for ARN {
                 self.account_id.as_ref().unwrap_or(&String::new()).clone(),
                 self.resource.clone().to_string()
             ]
-            .join(ARN_SEPARATOR)
+            .join(ARN_SEPARATOR_STR)
         )
     }
 }
@@ -214,7 +215,7 @@ impl FromStr for ARN {
     /// * `arn:partition:service:region:account-id: | resource part |`
     ///
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let mut parts: Vec<&str> = s.split(':').collect();
+        let mut parts: Vec<&str> = s.split(ARN_SEPARATOR).collect();
         if parts.len() < 6 {
             Err(ArnError::TooFewComponents)
         } else if parts[0] != ARN_PREFIX {
@@ -239,7 +240,7 @@ impl FromStr for ARN {
                 },
                 resource: {
                     let resource_parts: Vec<&str> = parts.drain(5..).collect();
-                    Resource::from_str(&resource_parts.join(":"))?
+                    Resource::from_str(&resource_parts.join(ARN_SEPARATOR_STR))?
                 },
             })
         }
@@ -249,15 +250,19 @@ impl FromStr for ARN {
 impl Display for Resource {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
         match self {
-            Resource::Any => write!(f, "*"),
+            Resource::Any => write!(f, "{}", WILD),
             Resource::Id(id) => write!(f, "{}", id),
             Resource::Path(path) => write!(f, "{}", path),
-            Resource::TypedId { the_type, id } => write!(f, "{}:{}", the_type, id),
+            Resource::TypedId { the_type, id } => write!(f, "{}{}{}", the_type, ARN_SEPARATOR, id),
             Resource::QTypedId {
                 the_type,
                 id,
                 qualifier,
-            } => write!(f, "{}:{}:{}", the_type, id, qualifier),
+            } => write!(
+                f,
+                "{}{}{}{}{}",
+                the_type, ARN_SEPARATOR, id, ARN_SEPARATOR, qualifier
+            ),
         }
     }
 }
@@ -274,10 +279,10 @@ impl FromStr for Resource {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         if s.is_empty() {
             Err(ArnError::MissingResource)
-        } else if s == "*" {
+        } else if s == WILD {
             Ok(Resource::Any)
-        } else if s.contains(':') {
-            let parts: Vec<&str> = s.split(':').collect();
+        } else if s.contains(ARN_SEPARATOR) {
+            let parts: Vec<&str> = s.split(ARN_SEPARATOR).collect();
             if parts.len() == 2 {
                 Ok(Resource::TypedId {
                     the_type: parts[0].to_string(),
@@ -292,7 +297,7 @@ impl FromStr for Resource {
             } else {
                 Err(ArnError::InvalidResource)
             }
-        } else if s.contains('/') {
+        } else if s.contains(PATH_SEPARATOR) {
             Ok(Resource::Path(s.to_string()))
         } else {
             Ok(Resource::Id(s.to_string()))
@@ -344,7 +349,7 @@ mod tests {
 
     #[test]
     fn test_resource_from_str() {
-        assert_eq!(Resource::from_str("*"), Ok(Resource::Any));
+        assert_eq!(Resource::from_str(WILD), Ok(Resource::Any));
         assert_eq!(
             Resource::from_str("mythings/athing"),
             Ok(Resource::Path("mythings/athing".to_string()))

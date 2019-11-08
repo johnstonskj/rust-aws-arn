@@ -10,12 +10,17 @@ use crate::ARN;
 // ------------------------------------------------------------------------------------------------
 
 ///
+/// The service name portion of the ARN.
+///
+pub const SERVICE_NAME: &str = "lambda";
+
+///
 /// From [doc](https://docs.aws.amazon.com/IAM/latest/UserGuide/list_awslambda.html#awslambda-resources-for-iam-policies)
 ///
 /// `arn:${Partition}:lambda:${Region}:${Account}:function:${FunctionName}`
 ///
 pub fn function(partition: &str, region: &str, account: &str, function_name: &str) -> ARN {
-    ArnBuilder::new("lambda")
+    ArnBuilder::new(SERVICE_NAME)
         .in_partition(partition)
         .in_region(region)
         .owned_by(account)
@@ -29,7 +34,7 @@ pub fn function(partition: &str, region: &str, account: &str, function_name: &st
 /// `arn:${Partition}:lambda:${Region}:${Account}:layer:${LayerName}`
 ///
 pub fn layer(partition: &str, region: &str, account: &str, layer_name: &str) -> ARN {
-    ArnBuilder::new("lambda")
+    ArnBuilder::new(SERVICE_NAME)
         .in_partition(partition)
         .in_region(region)
         .owned_by(account)
@@ -49,7 +54,7 @@ pub fn layer_version(
     layer_name: &str,
     layer_version: i32,
 ) -> ARN {
-    ArnBuilder::new("lambda")
+    ArnBuilder::new(SERVICE_NAME)
         .in_partition(partition)
         .in_region(region)
         .owned_by(account)
@@ -71,7 +76,7 @@ pub fn event_source_mapping(
     account: &str,
     mapping_uuid: &str,
 ) -> ARN {
-    ArnBuilder::new("lambda")
+    ArnBuilder::new(SERVICE_NAME)
         .in_partition(partition)
         .in_region(region)
         .owned_by(account)

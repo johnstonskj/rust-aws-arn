@@ -10,12 +10,17 @@ use crate::ARN;
 // ------------------------------------------------------------------------------------------------
 
 ///
+/// The service name portion of the ARN.
+///
+pub const SERVICE_NAME: &str = "iam";
+
+///
 /// From [doc](https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_identifiers.html#identifiers-arns)
 ///
 /// `arn:aws:iam::123456789012:root`
 ///
 pub fn root(account: &str) -> ARN {
-    ArnBuilder::new("iam")
+    ArnBuilder::new(SERVICE_NAME)
         .owned_by(account)
         .is(ResourceBuilder::new("root").build())
         .build()
@@ -27,7 +32,7 @@ pub fn root(account: &str) -> ARN {
 /// `arn:${Partition}:iam::${Account}:user/${UserNameWithPath}`
 ///
 pub fn user(partition: &str, account: &str, user_name: &str) -> ARN {
-    ArnBuilder::new("iam")
+    ArnBuilder::new(SERVICE_NAME)
         .in_partition(partition)
         .owned_by(account)
         .is(ResourceBuilder::new(user_name).is_an("user").build())
@@ -40,7 +45,7 @@ pub fn user(partition: &str, account: &str, user_name: &str) -> ARN {
 /// `arn:${Partition}:iam::${Account}:role/${RoleNameWithPath}`
 ///
 pub fn role(partition: &str, account: &str, role_name: &str) -> ARN {
-    ArnBuilder::new("iam")
+    ArnBuilder::new(SERVICE_NAME)
         .in_partition(partition)
         .owned_by(account)
         .is(ResourceBuilder::new(role_name).is_an("role").build())
@@ -53,7 +58,7 @@ pub fn role(partition: &str, account: &str, role_name: &str) -> ARN {
 /// `arn:${Partition}:iam::${Account}:group/${GroupNameWithPath}`
 ///
 pub fn group(partition: &str, account: &str, group_name: &str) -> ARN {
-    ArnBuilder::new("iam")
+    ArnBuilder::new(SERVICE_NAME)
         .in_partition(partition)
         .owned_by(account)
         .is(ResourceBuilder::new(group_name).is_an("group").build())
@@ -66,7 +71,7 @@ pub fn group(partition: &str, account: &str, group_name: &str) -> ARN {
 /// `arn:${Partition}:iam::${Account}:policy/${PolicyNameWithPath}`
 ///
 pub fn policy(partition: &str, account: &str, policy_name: &str) -> ARN {
-    ArnBuilder::new("iam")
+    ArnBuilder::new(SERVICE_NAME)
         .in_partition(partition)
         .owned_by(account)
         .is(ResourceBuilder::new(policy_name).is_an("policy").build())
