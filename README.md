@@ -1,4 +1,4 @@
-# rust-aws-arn
+# Crate aws-arn
 Provides types, builders, and other helpers to manipulate AWS Amazon Resource Name (ARN) strings.
 
 ![MIT License](https://img.shields.io/badge/license-mit-118811.svg)
