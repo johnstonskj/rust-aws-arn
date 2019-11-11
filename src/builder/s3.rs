@@ -19,11 +19,15 @@ pub const SERVICE_NAME: &str = "s3";
 ///
 /// `arn:${Partition}:s3:::${BucketName}`
 ///
-pub fn bucket(partition: &str, bucket_name: &str) -> ARN {
+pub fn bucket_in(partition: &str, bucket_name: &str) -> ARN {
     ArnBuilder::new(SERVICE_NAME)
         .in_partition(partition)
         .is(ResourceBuilder::new(bucket_name).build())
         .build()
+}
+
+pub fn bucket(bucket_name: &str) -> ARN {
+    bucket_in("aws", bucket_name)
 }
 
 ///
@@ -31,11 +35,15 @@ pub fn bucket(partition: &str, bucket_name: &str) -> ARN {
 ///
 /// `arn:${Partition}:s3:::${BucketName}/${ObjectName}`
 ///
-pub fn object(partition: &str, bucket_name: &str, object_name: &str) -> ARN {
+pub fn object_in(partition: &str, bucket_name: &str, object_name: &str) -> ARN {
     ArnBuilder::new(SERVICE_NAME)
         .in_partition(partition)
         .is(ResourceBuilder::new(&format!("{}/{}", bucket_name, object_name)).build())
         .build()
+}
+
+pub fn object(bucket_name: &str, object_name: &str) -> ARN {
+    object_in("aws", bucket_name, object_name)
 }
 
 ///
@@ -43,11 +51,15 @@ pub fn object(partition: &str, bucket_name: &str, object_name: &str) -> ARN {
 ///
 /// `arn:${Partition}:s3:${Region}:${Account}:job/${JobId}`
 ///
-pub fn job(partition: &str, region: &str, account: &str, job_id: &str) -> ARN {
+pub fn job_in(partition: &str, region: &str, account: &str, job_id: &str) -> ARN {
     ArnBuilder::new(SERVICE_NAME)
         .in_partition(partition)
         .in_region(region)
         .owned_by(account)
         .is(ResourceBuilder::new(job_id).build())
         .build()
+}
+
+pub fn job(region: &str, account: &str, job_id: &str) -> ARN {
+    job_in("aws", region, account, job_id)
 }
