@@ -10,8 +10,14 @@ license = "MIT"
 readme = "README.md"
 publish = true
 
+[features]
+ext_validation = ["serde", "toml"]
+serde_support = ["serde"]
+
 [dependencies]
 lazy_static = "1.4.0"
 regex = "1"
-serde = { version = "1.0", features = ["derive"] }
-toml = "0.5"
+
+# Optional dependencies
+serde = { optional = true, version = "1.0", features = ["derive"] }
+toml = { optional = true, version = "0.5" }

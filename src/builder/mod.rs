@@ -1,6 +1,23 @@
 /*!
 Provides a more natural builder interface for constructing ARNs.
 
+The builder pattern allows for a more readable construction of ARNs, and in this case we
+provide a number of *verb* prefixes on *noun* constructors, so we have `in_region` as well as
+`and_region` which is more readable if it is preceded by `in_partition`. For the account id
+field there is `in_account`, `and_account`, `any_account`, and `owned_by`; all of these
+accomplish the same goal but allow for a choice that makes code easir to understand.
+
+# Resource-Specific Constructor Functions
+
+For the service-specific submodules (`iam`, `lambda`, `s3`, etc.) the functions are simply named
+for the noun that represents the resource type as described in the AWS documentation. As the
+partition in commonly left to default to "aws" there are also a set of `{noun}_in()` functions
+that take a partition, and corresponding `{noun}()` functions which do not.
+
+In some cases where an ARN may be dependent on another, for example an S3 object ARN might be
+constructed from an existing bucket ARN, additional `{noun}_from(other,...)` functions will
+be provided.
+
 # Example
 
 The following shows the construction of an AWS versioned layer ARN.
@@ -26,6 +43,10 @@ This should print `ARN: 'arn:aws:lambda:us-east-2:123456789012:layer:my-layer:3'
 
 use crate::{Resource, ARN, WILD};
 
+// ------------------------------------------------------------------------------------------------
+// Public Types
+// ------------------------------------------------------------------------------------------------
+
 ///
 /// Builder type for the resource portion of an ARN.
 ///
@@ -41,6 +62,10 @@ pub struct ResourceBuilder {
 pub struct ArnBuilder {
     arn: ARN,
 }
+
+// ------------------------------------------------------------------------------------------------
+// Implementations
+// ------------------------------------------------------------------------------------------------
 
 impl ResourceBuilder {
     /// Construct a resource with the specified `id`.
@@ -189,10 +214,21 @@ impl ArnBuilder {
         self
     }
 
+    /// Set a specific `partition` for this ARN.
+    pub fn in_any_partition(&mut self) -> &mut Self {
+        self.arn.partition = None;
+        self
+    }
+
     /// Set a specific `region` for this ARN.
     pub fn in_region(&mut self, region: &str) -> &mut Self {
         self.arn.region = Some(region.to_string());
         self
+    }
+
+    /// Set a specific `region` for this ARN.
+    pub fn and_region(&mut self, region: &str) -> &mut Self {
+        self.in_region(region)
     }
 
     /// Set `region` to a wildcard for this ARN.
@@ -204,6 +240,11 @@ impl ArnBuilder {
     pub fn in_account(&mut self, account: &str) -> &mut Self {
         self.arn.account_id = Some(account.to_string());
         self
+    }
+
+    /// Set a specific `account` for this ARN.
+    pub fn and_account(&mut self, account: &str) -> &mut Self {
+        self.in_account(account)
     }
 
     /// Set a specific `account` for this ARN.
@@ -236,6 +277,11 @@ impl ArnBuilder {
     pub fn any_resource(&mut self) -> &mut Self {
         self.arn.resource = Resource::Any;
         self
+    }
+
+    /// Set `resource` to a wildcard for this ARN.
+    pub fn for_any_resource(&mut self) -> &mut Self {
+        self.any_resource()
     }
 
     /// Construct an `ARN` from this `ArnBuilder`.

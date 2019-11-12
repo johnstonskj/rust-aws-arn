@@ -1,8 +1,60 @@
 /*!
 Provides types, builders, and other helpers to manipulate AWS Amazon Resource Name (ARN) strings.
 
+The ARN is a key component of all AWS service APIs and yet nearly all client toolkits treat it
+simply as a string. While this may be a reasonable and expedient decision, it seems there might
+be a need to not only ensure correctness of ARNs with validators but also constructors that allow
+making these strings correclt in the first place.
+
+This crate provides three levels of ARN manipulation, the first is the direct construction of an
+ARN type (module `aws_arn` - the core `Resource` and `ARN` types).
+
+```rust
+use aws_arn::{ARN, Resource};
+
+let arn = ARN {
+    partition: Some("aws".to_string()),
+    service: "s3".to_string(),
+    region: None,
+    account_id: None,
+    resource: Resource::Path("".to_string())};
+```
+
+Or, alternatively using `FromStr` you can parse a string into an ARN.
+
+```rust
+use aws_arn::ARN;
+use std::str::FromStr;
+
+let arn: ARN = "arn:aws:s3:::mythings/thing-1".parse().expect("didn't look like an ARN");
+```
+
+The next is to use a more readable builder which also allows you to ignore those fields in the ARN
+you don't always need (module `aws_arn::builder` - the `ResourceBuilder` and `ArnBuilder` types
+providing a more fluent style of ARN construction).
+
+```rust
+use aws_arn::builder::{ArnBuilder, ResourceBuilder};
+
+let arn = ArnBuilder::new("s3")
+    .resource(ResourceBuilder::new(&format!("{}/{}", "mythings", "thing-1")).build())
+    .in_partition("aws")
+    .build();
+```
+
+Finally, it is possible to use resource-type specific functions that allow an even more direct and
+simple construction (module `aws_arn::builder::{service}` - *service builder functions*.
+
+```rust
+use aws_arn::builder::s3;
+
+let arn = s3::object("mythings", "thing-1");
+```
+
 For more, see the AWS documentation for [Amazon Resource Name
-(ARN)](https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html).
+(ARN)](https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html). In a lot
+of cases the documentation for elements of the ARN and Resource types use descriptions taken
+directly from the AWS documentation.
 */
 
 // ------------------------------------------------------------------------------------------------
@@ -19,6 +71,9 @@ For more, see the AWS documentation for [Amazon Resource Name
 #[macro_use]
 extern crate lazy_static;
 
+#[cfg(serde_support)]
+use serde::{Deserialize, Serialize};
+
 use regex::Regex;
 use std::fmt::{Debug, Display, Error, Formatter};
 use std::str::FromStr;
@@ -28,7 +83,7 @@ use std::str::FromStr;
 // ------------------------------------------------------------------------------------------------
 
 ///
-/// Contains the resource part of the ARN. There **mus** be a `resource-id`, there **may* be
+/// Contains the resource part of the ARN. There **must** be a `resource-id`, there **may** be
 /// a `resource-type`, and there **may** be a qualifier. The separator between type and id
 /// may be prefix-like (':') or path-like (PATH_SEPARATOR).
 ///
@@ -45,6 +100,7 @@ use std::str::FromStr;
 /// > In some circumstances, paths can include a wildcard character, namely an asterisk (*).
 ///
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(serde_support, derive(Deserialize, Serialize))]
 pub enum Resource {
     /// The wildcard resource.
     Any,
@@ -87,6 +143,7 @@ pub enum Resource {
 /// From [ARN Format](https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html#arns-syntax)
 ///
 #[derive(Debug, Clone)]
+#[cfg_attr(serde_support, derive(Deserialize, Serialize))]
 pub struct ARN {
     /// The partition that the resource is in. For standard AWS Regions, the partition is` aws`.
     /// If you have resources in other partitions, the partition is `aws-partitionname`. For
@@ -311,7 +368,21 @@ impl FromStr for Resource {
 
 pub mod builder;
 
+#[cfg(ext_validation)]
 mod validate;
+
+#[cfg(not(ext_validation))]
+mod validate {
+    use crate::{ArnError, Resource, ARN};
+
+    pub fn is_registered(_service: &str, _resource: &Resource) -> bool {
+        false
+    }
+
+    pub fn validate(_arn: &ARN) -> Result<(), ArnError> {
+        Ok(())
+    }
+}
 
 // ------------------------------------------------------------------------------------------------
 // Unit Tests

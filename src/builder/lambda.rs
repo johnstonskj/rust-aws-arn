@@ -1,5 +1,8 @@
 /*!
 Provides a set of simple helper functions to make ARNs for the Lambda service.
+
+These resource definitions ae take from the AWS
+[documentation](https://docs.aws.amazon.com/IAM/latest/UserGuide/list_awslambda.html#awslambda-resources-for-iam-policies).
 */
 
 use crate::builder::{ArnBuilder, ResourceBuilder};
@@ -15,8 +18,6 @@ use crate::ARN;
 pub const SERVICE_NAME: &str = "lambda";
 
 ///
-/// From [doc](https://docs.aws.amazon.com/IAM/latest/UserGuide/list_awslambda.html#awslambda-resources-for-iam-policies)
-///
 /// `arn:${Partition}:lambda:${Region}:${Account}:function:${FunctionName}`
 ///
 pub fn function(partition: &str, region: &str, account: &str, function_name: &str) -> ARN {
@@ -29,8 +30,6 @@ pub fn function(partition: &str, region: &str, account: &str, function_name: &st
 }
 
 ///
-/// From [doc](https://docs.aws.amazon.com/IAM/latest/UserGuide/list_awslambda.html#awslambda-resources-for-iam-policies)
-///
 /// `arn:${Partition}:lambda:${Region}:${Account}:layer:${LayerName}`
 ///
 pub fn layer(partition: &str, region: &str, account: &str, layer_name: &str) -> ARN {
@@ -42,8 +41,6 @@ pub fn layer(partition: &str, region: &str, account: &str, layer_name: &str) -> 
         .build()
 }
 
-///
-/// From [doc](https://docs.aws.amazon.com/IAM/latest/UserGuide/list_awslambda.html#awslambda-resources-for-iam-policies)
 ///
 /// `arn:${Partition}:lambda:${Region}:${Account}:layer:${LayerName}:${LayerVersion}`
 ///
@@ -65,8 +62,6 @@ pub fn layer_version(
         .build()
 }
 
-///
-/// From [doc](https://docs.aws.amazon.com/IAM/latest/UserGuide/list_awslambda.html#awslambda-resources-for-iam-policies)
 ///
 /// `arn:${Partition}:lambda:${Region}:${Account}:event-source-mapping:${UUID}`
 ///
