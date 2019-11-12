@@ -278,7 +278,7 @@ impl FromStr for ARN {
         } else if parts[0] != ARN_PREFIX {
             Err(ArnError::MissingPrefix)
         } else {
-            Ok(ARN {
+            let new_arn = ARN {
                 partition: if parts[1].is_empty() {
                     None
                 } else {
@@ -299,7 +299,11 @@ impl FromStr for ARN {
                     let resource_parts: Vec<&str> = parts.drain(5..).collect();
                     Resource::from_str(&resource_parts.join(ARN_SEPARATOR_STR))?
                 },
-            })
+            };
+            match new_arn.validate() {
+                Ok(()) => Ok(new_arn),
+                Err(err) => Err(err),
+            }
         }
     }
 }
