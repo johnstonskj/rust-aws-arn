@@ -6,7 +6,7 @@ These resource definitions ae take from the AWS
 */
 
 use crate::builder::{ArnBuilder, ResourceBuilder};
-use crate::ARN;
+use crate::{ArnError, ARN};
 
 // ------------------------------------------------------------------------------------------------
 // Public Functions
@@ -20,13 +20,18 @@ pub const SERVICE_NAME: &str = "cognito-identity";
 ///
 /// `arn:${Partition}:cognito-identity:${Region}:${Account}:identitypool/${IdentityPoolId}`
 ///
-pub fn identity_pool(partition: &str, region: &str, account: &str, identity_pool_id: &str) -> ARN {
+pub fn identity_pool(
+    partition: &str,
+    region: &str,
+    account: &str,
+    identity_pool_id: &str,
+) -> Result<ARN, ArnError> {
     ArnBuilder::new(SERVICE_NAME)
         .in_partition(partition)
         .in_region(region)
         .owned_by(account)
         .is(ResourceBuilder::new(identity_pool_id)
             .is_an("identitypool")
-            .build())
+            .build()?)
         .build()
 }

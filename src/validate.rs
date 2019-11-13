@@ -14,6 +14,86 @@ pub fn validate(arn: &ARN) -> Result<(), ArnError> {
     match FORMATS.get(&make_key(&arn.service, &arn.resource)) {
         Some(format) => {
             println!("Format: {:?}", format);
+            // ------------------------------------------------------------------------------------
+            if format.partition_required && arn.partition == None {
+                return Err(ArnError::MissingPartition);
+            }
+            // ------------------------------------------------------------------------------------
+            match &arn.region {
+                None => {
+                    if format.region_required {
+                        return Err(ArnError::MissingRegion);
+                    }
+                }
+                Some(region) => {
+                    if !format.region_wc_allowed && region.contains('*') {
+                        return Err(ArnError::RegionWildcardNotAllowed);
+                    }
+                }
+            }
+            // ------------------------------------------------------------------------------------
+            match &arn.account_id {
+                None => {
+                    if format.account_id_required {
+                        return Err(ArnError::MissingAccountId);
+                    }
+                }
+                Some(account_id) => {
+                    if !format.account_wc_allowed && account_id.contains('*') {
+                        return Err(ArnError::AccountIdWildcardNotAllowed);
+                    }
+                }
+            }
+            // ------------------------------------------------------------------------------------
+            match &arn.resource {
+                Resource::Any => {
+                    if !format.resource_wc_allowed {
+                        return Err(ArnError::ResourceWildcardNotAllowed);
+                    }
+                }
+                Resource::Id(id) => {
+                    if format.resource_format != ResourceFormat::Id {
+                        return Err(ArnError::InvalidResource);
+                    } else if !format.resource_wc_allowed && id.contains('*') {
+                        return Err(ArnError::ResourceWildcardNotAllowed);
+                    }
+                }
+                Resource::Path(path) => {
+                    if format.resource_format != ResourceFormat::Path {
+                        return Err(ArnError::InvalidResource);
+                    } else if !format.resource_wc_allowed && path.contains('*') {
+                        return Err(ArnError::ResourceWildcardNotAllowed);
+                    }
+                }
+                Resource::TypedId { the_type, id } => {
+                    if format.resource_format != ResourceFormat::TypeId {
+                        return Err(ArnError::InvalidResource);
+                    } else if the_type.contains('*')
+                        || (!format.resource_wc_allowed && id.contains('*'))
+                        || the_type.is_empty()
+                        || id.is_empty()
+                    {
+                        return Err(ArnError::ResourceWildcardNotAllowed);
+                    }
+                }
+                Resource::QTypedId {
+                    the_type,
+                    id,
+                    qualifier,
+                } => {
+                    if format.resource_format != ResourceFormat::QTypeId {
+                        return Err(ArnError::InvalidResource);
+                    } else if the_type.contains('*')
+                        || (!format.resource_wc_allowed
+                            && (id.contains('*') || qualifier.contains('*')))
+                        || the_type.is_empty()
+                        || id.is_empty()
+                        || qualifier.is_empty()
+                    {
+                        return Err(ArnError::ResourceWildcardNotAllowed);
+                    }
+                }
+            }
             Ok(())
         }
         None => Ok(()),
@@ -24,12 +104,12 @@ pub fn validate(arn: &ARN) -> Result<(), ArnError> {
 // Implementation
 // ------------------------------------------------------------------------------------------------
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
 enum ResourceFormat {
     Id,
-    Prefixed,
     Path,
-    PrefixedPath,
+    TypeId,
+    QTypeId,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -44,11 +124,9 @@ struct ServiceArnFormat {
     account_id_required: bool,
     #[serde(default)]
     account_wc_allowed: bool,
-    format: ResourceFormat,
+    resource_format: ResourceFormat,
     #[serde(default)]
-    resource_id_wc_allowed: bool,
-    #[serde(default)]
-    qualifier_expected: bool,
+    resource_wc_allowed: bool,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -116,9 +194,8 @@ mod tests {
             region_wc_allowed: false,
             account_id_required: true,
             account_wc_allowed: false,
-            format: ResourceFormat::Path,
-            resource_id_wc_allowed: false,
-            qualifier_expected: Default::default(),
+            resource_format: ResourceFormat::Path,
+            resource_wc_allowed: false,
         };
         let services = ServiceArnFormats { format: vec![iam] };
         let toml = toml::to_string(&services).unwrap();
@@ -134,7 +211,7 @@ resource_type = "user"
 partition_required = true
 region_required = false
 account_id_required = true
-format = "Path"
+resource_format = "Path"
 "#;
         let formats: ServiceArnFormats = toml::from_str(iam).unwrap();
         println!(

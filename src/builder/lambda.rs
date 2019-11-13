@@ -6,7 +6,7 @@ These resource definitions ae take from the AWS
 */
 
 use crate::builder::{ArnBuilder, ResourceBuilder};
-use crate::ARN;
+use crate::{ArnError, ARN};
 
 // ------------------------------------------------------------------------------------------------
 // Public Functions
@@ -20,24 +20,36 @@ pub const SERVICE_NAME: &str = "lambda";
 ///
 /// `arn:${Partition}:lambda:${Region}:${Account}:function:${FunctionName}`
 ///
-pub fn function(partition: &str, region: &str, account: &str, function_name: &str) -> ARN {
+pub fn function(
+    partition: &str,
+    region: &str,
+    account: &str,
+    function_name: &str,
+) -> Result<ARN, ArnError> {
     ArnBuilder::new(SERVICE_NAME)
         .in_partition(partition)
         .in_region(region)
         .owned_by(account)
-        .is(ResourceBuilder::new(function_name).is_a("function").build())
+        .is(ResourceBuilder::new(function_name)
+            .is_a("function")
+            .build()?)
         .build()
 }
 
 ///
 /// `arn:${Partition}:lambda:${Region}:${Account}:layer:${LayerName}`
 ///
-pub fn layer(partition: &str, region: &str, account: &str, layer_name: &str) -> ARN {
+pub fn layer(
+    partition: &str,
+    region: &str,
+    account: &str,
+    layer_name: &str,
+) -> Result<ARN, ArnError> {
     ArnBuilder::new(SERVICE_NAME)
         .in_partition(partition)
         .in_region(region)
         .owned_by(account)
-        .is(ResourceBuilder::new(layer_name).is_a("layer").build())
+        .is(ResourceBuilder::new(layer_name).is_a("layer").build()?)
         .build()
 }
 
@@ -50,7 +62,7 @@ pub fn layer_version(
     account: &str,
     layer_name: &str,
     layer_version: i32,
-) -> ARN {
+) -> Result<ARN, ArnError> {
     ArnBuilder::new(SERVICE_NAME)
         .in_partition(partition)
         .in_region(region)
@@ -58,7 +70,7 @@ pub fn layer_version(
         .is(ResourceBuilder::new(layer_name)
             .is_a("layer")
             .with_version(layer_version)
-            .build())
+            .build()?)
         .build()
 }
 
@@ -70,13 +82,13 @@ pub fn event_source_mapping(
     region: &str,
     account: &str,
     mapping_uuid: &str,
-) -> ARN {
+) -> Result<ARN, ArnError> {
     ArnBuilder::new(SERVICE_NAME)
         .in_partition(partition)
         .in_region(region)
         .owned_by(account)
         .is(ResourceBuilder::new(mapping_uuid)
             .is_an("event-source-mapping")
-            .build())
+            .build()?)
         .build()
 }

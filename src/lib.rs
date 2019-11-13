@@ -6,6 +6,8 @@ simply as a string. While this may be a reasonable and expedient decision, it se
 be a need to not only ensure correctness of ARNs with validators but also constructors that allow
 making these strings correclt in the first place.
 
+# ARN Types
+
 This crate provides three levels of ARN manipulation, the first is the direct construction of an
 ARN type (module `aws_arn` - the core `Resource` and `ARN` types).
 
@@ -20,7 +22,9 @@ let arn = ARN {
     resource: Resource::Path("".to_string())};
 ```
 
-Or, alternatively using `FromStr` you can parse a string into an ARN.
+One issue with the code above is that, unless you subsequently call `arn.validate()` the
+resulting ARN could be garbage. Alternatively, using `FromStr,` you can parse a string into an
+ARN which will call `validate()` for you.
 
 ```rust
 use aws_arn::ARN;
@@ -37,9 +41,9 @@ providing a more fluent style of ARN construction).
 use aws_arn::builder::{ArnBuilder, ResourceBuilder};
 
 let arn = ArnBuilder::new("s3")
-    .resource(ResourceBuilder::new(&format!("{}/{}", "mythings", "thing-1")).build())
+    .resource(ResourceBuilder::new(&format!("{}/{}", "mythings", "thing-1")).build().unwrap())
     .in_partition("aws")
-    .build();
+    .build().unwrap();
 ```
 
 Finally, it is possible to use resource-type specific functions that allow an even more direct and
@@ -55,6 +59,36 @@ For more, see the AWS documentation for [Amazon Resource Name
 (ARN)](https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html). In a lot
 of cases the documentation for elements of the ARN and Resource types use descriptions taken
 directly from the AWS documentation.
+
+# Validation
+
+
+# Optional Features
+
+This crate has attempted to be as lean as possible, with a really minimal set of dependencies,
+we have include the following capabilities as optional features.
+
+* `serde_support` adds derived `Serialize` and `Deserialize` implementations for the `ARN` and
+   `Resource` types.
+* `ext_validation` adds extended, service specific, validation using an external configuration file.
+
+## Extended Validation
+
+
+
+```toml
+[[format]]
+name = "iam"
+resource_type = "user"
+partition_required = true
+region_required = false
+region_wc_allowed = false
+account_id_required = true
+account_wc_allowed = false
+resource_format = "Path"
+resource_wc_allowed = false
+```
+
 */
 
 // ------------------------------------------------------------------------------------------------
@@ -189,14 +223,20 @@ pub enum ArnError {
     MissingRegion,
     /// The partition region provided is not valid.
     InvalidRegion,
+    /// The particular resource type does not allow region wildcards.
+    RegionWildcardNotAllowed,
     /// Missing the account id component.
     MissingAccountId,
     /// The partition account id provided is not valid.
     InvalidAccountId,
+    /// The particular resource type does not allow account wildcards.
+    AccountIdWildcardNotAllowed,
     /// Missing the resource component.
     MissingResource,
     /// The partition resource provided is not valid.
     InvalidResource,
+    /// The particular resource type does not allow resource wildcards.
+    ResourceWildcardNotAllowed,
 }
 
 // ------------------------------------------------------------------------------------------------
@@ -217,7 +257,7 @@ const WILD: &str = "*";
 
 lazy_static! {
     static ref PARTITION: Regex = Regex::new(r"^aws(\-[a-zA-Z][a-zA-Z0-9\-]+)?$").unwrap();
-    static ref SERVICE: Regex = Regex::new(r"^[a-zA-Z][a-zA-Z0-9\-]+$").unwrap();
+    static ref IDENTIFIER: Regex = Regex::new(r"^[a-zA-Z][a-zA-Z0-9\-]+$").unwrap();
 }
 
 impl ARN {
@@ -231,9 +271,24 @@ impl ARN {
                 return Err(ArnError::InvalidPartition);
             }
         }
-        if !SERVICE.is_match(&self.service) {
+
+        if !IDENTIFIER.is_match(&self.service) {
             return Err(ArnError::InvalidService);
         }
+
+        if let Some(region) = &self.region {
+            if !IDENTIFIER.is_match(region) {
+                return Err(ArnError::InvalidRegion);
+            }
+        }
+
+        if let Some(account_id) = &self.account_id {
+            if account_id.len() != 12 || !account_id.chars().all(|c| c.is_ascii_digit()) {
+                return Err(ArnError::InvalidAccountId);
+            }
+        }
+
+        self.resource.validate()?;
 
         if validate::is_registered(&self.service, &self.resource) {
             validate::validate(self)?
@@ -300,11 +355,39 @@ impl FromStr for ARN {
                     Resource::from_str(&resource_parts.join(ARN_SEPARATOR_STR))?
                 },
             };
-            match new_arn.validate() {
-                Ok(()) => Ok(new_arn),
-                Err(err) => Err(err),
-            }
+            new_arn.validate().map(|_| new_arn)
         }
+    }
+}
+
+impl Resource {
+    ///
+    /// Validate the syntax of a resource, not any service-specific semantics.
+    ///
+    pub fn validate(&self) -> Result<(), ArnError> {
+        match self {
+            Resource::Id(id) => must_not_contain(id, &[':', '/', '*']),
+            Resource::Path(path) => must_not_contain(path, &[':', '*']),
+            Resource::TypedId { the_type, id } => must_not_contain(the_type, &[':', '/', '*'])
+                .and_then(|_| must_not_contain(id, &[':', '/'])),
+            Resource::QTypedId {
+                the_type,
+                id,
+                qualifier,
+            } => must_not_contain(the_type, &[':', '/', '*']).and_then(|_| {
+                must_not_contain(id, &[':', '/'])
+                    .and_then(|_| must_not_contain(qualifier, &[':', '/', '*']))
+            }),
+            _ => Ok(()),
+        }
+    }
+}
+
+fn must_not_contain(s: &String, chars: &[char]) -> Result<(), ArnError> {
+    if s.contains(chars) {
+        Err(ArnError::InvalidResource)
+    } else {
+        Ok(())
     }
 }
 
@@ -372,11 +455,14 @@ impl FromStr for Resource {
 
 pub mod builder;
 
-#[cfg(ext_validation)]
+#[cfg(feature = "ext_validation")]
 mod validate;
 
-#[cfg(not(ext_validation))]
+#[cfg(not(feature = "ext_validation"))]
 mod validate {
+    //
+    // A stub for the module when the feature is not present.
+    //
     use crate::{ArnError, Resource, ARN};
 
     pub fn is_registered(_service: &str, _resource: &Resource) -> bool {

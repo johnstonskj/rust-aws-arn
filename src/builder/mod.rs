@@ -30,18 +30,18 @@ let arn = ArnBuilder::new("lambda")
         ResourceBuilder::new("my-layer")
             .is_a("layer")
             .with_version(3)
-            .build(),
+            .build().unwrap(),
     )
     .in_region("us-east-2")
     .owned_by("123456789012")
-    .build();
+    .build().expect("badly formatted ARN?");
 println!("ARN: '{}'", arn);
 ```
 
 This should print `ARN: 'arn:aws:lambda:us-east-2:123456789012:layer:my-layer:3'`.
 */
 
-use crate::{Resource, ARN, WILD};
+use crate::{ArnError, Resource, ARN, WILD};
 
 // ------------------------------------------------------------------------------------------------
 // Public Types
@@ -68,10 +68,19 @@ pub struct ArnBuilder {
 // ------------------------------------------------------------------------------------------------
 
 impl ResourceBuilder {
-    /// Construct a resource with the specified `id`.
-    pub fn new(id: &str) -> Self {
-        ResourceBuilder {
-            resource: Resource::Id(id.to_string()),
+    /// Construct a resource with the specified `id` or `path`. If the string contains a '/'
+    /// character a Path is created, else an Id.
+    pub fn new(id_or_path: &str) -> Self {
+        if id_or_path.contains(':') {
+            panic!("You can't create qualified things");
+        } else if id_or_path.contains('/') {
+            ResourceBuilder {
+                resource: Resource::Path(id_or_path.to_string()),
+            }
+        } else {
+            ResourceBuilder {
+                resource: Resource::Id(id_or_path.to_string()),
+            }
         }
     }
 
@@ -189,8 +198,9 @@ impl ResourceBuilder {
     }
 
     /// Construct a `Resource` from this `ResourceBuilder`.
-    pub fn build(&self) -> Resource {
-        self.resource.clone()
+    pub fn build(&self) -> Result<Resource, ArnError> {
+        let new_resource = self.resource.clone();
+        new_resource.validate().map(|_| new_resource)
     }
 }
 
@@ -285,8 +295,9 @@ impl ArnBuilder {
     }
 
     /// Construct an `ARN` from this `ArnBuilder`.
-    pub fn build(&self) -> ARN {
-        self.arn.clone()
+    pub fn build(&self) -> Result<ARN, ArnError> {
+        let new_arn = self.arn.clone();
+        new_arn.validate().map(|_| new_arn)
     }
 }
 
@@ -313,8 +324,9 @@ mod tests {
     #[test]
     fn test_s3_bucket() {
         let arn = ArnBuilder::new("s3")
-            .resource(ResourceBuilder::new("my-bucket").build())
-            .build();
+            .resource(ResourceBuilder::new("my-bucket").build().unwrap())
+            .build()
+            .unwrap();
         assert_eq!(arn.to_string(), "arn:aws:s3:::my-bucket");
     }
 
@@ -325,11 +337,13 @@ mod tests {
                 ResourceBuilder::new("my-layer")
                     .is_a("layer")
                     .with_version(3)
-                    .build(),
+                    .build()
+                    .unwrap(),
             )
             .in_region("us-east-2")
             .owned_by("123456789012")
-            .build();
+            .build()
+            .unwrap();
         assert_eq!(
             arn.to_string(),
             "arn:aws:lambda:us-east-2:123456789012:layer:my-layer:3"
