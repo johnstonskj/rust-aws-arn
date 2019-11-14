@@ -62,6 +62,25 @@ directly from the AWS documentation.
 
 # Validation
 
+As mentioned above, both the `ARN` and `Resource` types have a `validate()` function that will
+test for consistency. Also, this validation is optional if you construction these types
+directly. The validation supported by these two resources is limited to syntactic values,
+described in the following table. This table mentions *identifier* as a type, this is a pattern
+where a string starts with an alphabetic character, then zero or more alphanumeric characters
+and the characters '-' and '_'.
+
+| Type       | Field         | Tests |
+|------------|---------------|-------|
+| `ARN`      | `partition`   | Either "aws" or "aws-*{identifier}*".  |
+| `ARN`      | `service`     | Must be an *identifier*.  |
+| `ARN`      | `region`      | Must be an *identifier*.  |
+| `ARN`      | `account_id`  | A 12 character, ASCII digit, String.  |
+| `ARN`      | `resource`    | Below.  |
+| `Resource` | `id`          | Must not contain ':', '/', or '*'  |
+| `Resource` | `path`        | Must not contain ':'  |
+| `Resource` | `the_type`    | Must not contain ':', '/'  |
+| `Resource` | `qualifier`   | Must not contain ':', '/'  |
+
 
 # Optional Features
 
@@ -74,20 +93,23 @@ we have include the following capabilities as optional features.
 
 ## Extended Validation
 
+The feature `ext_validation` extends the capability of the `ARN::validate()` by applying a set of
+rules for service and resource type pairs, for example S3 buckets or lambda functions. The rules
+are defined in a configuration file, `service-formats.toml` in the crate and which is read and
+the rules applied if a matching configuration is found. The file is structured as a list of
+`[[format]]` maps and the following table summarizes the fields in this map.
 
-
-```toml
-[[format]]
-name = "iam"
-resource_type = "user"
-partition_required = true
-region_required = false
-region_wc_allowed = false
-account_id_required = true
-account_wc_allowed = false
-resource_format = "Path"
-resource_wc_allowed = false
-```
+| Name                | Type         | Required | Comments |
+|---------------------|--------------|----------|----------|
+| `name`              | *identifier* | **Yes**  | Service name, e.g. "s3" |
+`resource_type`       | *identifier* | No       | Resource type, optional |
+`partition_required`  | boolean      | **Yes**  | Must you specify a partition |
+`region_required`     | boolean      | **Yes**  | Must you specify a region |
+`region_wc_allowed`   | boolean      | No       | Wildcard, '*' character is allowed in a region string, default is false |
+`account_id_required` | boolean      | **Yes**  | Must you specify an account ID |
+`account_wc_allowed`  | boolean      | No       | Wildcard, '*' character is allowed in a region string, default is false |
+`resource_format`     | enum         | **Yes**  | Defines the required format for the resource portion |
+`resource_wc_allowed` | boolean      | No       | Wildcard, '*' character is allowed in a region string, default is false |
 
 */
 
@@ -367,7 +389,7 @@ impl Resource {
     pub fn validate(&self) -> Result<(), ArnError> {
         match self {
             Resource::Id(id) => must_not_contain(id, &[':', '/', '*']),
-            Resource::Path(path) => must_not_contain(path, &[':', '*']),
+            Resource::Path(path) => must_not_contain(path, &[':']),
             Resource::TypedId { the_type, id } => must_not_contain(the_type, &[':', '/', '*'])
                 .and_then(|_| must_not_contain(id, &[':', '/'])),
             Resource::QTypedId {

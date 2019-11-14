@@ -18,6 +18,9 @@ In some cases where an ARN may be dependent on another, for example an S3 object
 constructed from an existing bucket ARN, additional `{noun}_from(other,...)` functions will
 be provided.
 
+Note that the final `build()` function will call `validate()`, and so it is possible to call
+intermediate functions with bad data which is only caught at build time.
+
 # Example
 
 The following shows the construction of an AWS versioned layer ARN.

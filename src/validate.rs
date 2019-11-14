@@ -1,3 +1,7 @@
+/*!
+Implement rule-based, service-specific validation using an external configuration file.
+*/
+
 use crate::{ArnError, Resource, ARN};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
