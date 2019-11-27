@@ -45,14 +45,14 @@ pub fn object_in(partition: &str, bucket_name: &str, object_name: &str) -> Resul
 }
 
 ///
-/// `arn:$aws:s3:::${BucketName}/${ObjectName}`
+/// `arn:aws:s3:::${BucketName}/${ObjectName}`
 ///
 pub fn object(bucket_name: &str, object_name: &str) -> Result<ARN, ArnError> {
     object_in("aws", bucket_name, object_name)
 }
 
 ///
-/// `arn:$aws:s3:::${BucketName}/${ObjectName}`
+/// `arn:aws:s3:::${BucketName}/${ObjectName}`
 ///
 /// This function will panic if `bucket` is not an ARN for an S3 bucket.
 ///
@@ -66,7 +66,7 @@ pub fn object_from(bucket: &ARN, object_name: &str) -> Result<ARN, ArnError> {
             ..bucket.clone()
         })
     } else {
-        Err(ArnError::InvalidResource)
+        Err(ArnError::InvalidResource("id".to_string()))
     }
 }
 

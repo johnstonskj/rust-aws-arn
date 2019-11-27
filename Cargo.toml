@@ -10,8 +10,10 @@ license = "MIT"
 readme = "README.md"
 publish = true
 
+
 [features]
-ext_validation = ["serde", "toml"]
+default = ["serde_support"]
+ext_validation = ["serde_support", "toml"]
 serde_support = ["serde"]
 
 [dependencies]

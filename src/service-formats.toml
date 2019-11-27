@@ -8,3 +8,15 @@ account_id_required = true
 account_wc_allowed = false
 resource_format = "Path"
 resource_wc_allowed = false
+
+
+[[format]]
+name = "cognito-identity"
+resource_type = "identitypool"
+partition_required = true
+region_required = true
+region_wc_allowed = false
+account_id_required = true
+account_wc_allowed = false
+resource_format = "Path"
+resource_wc_allowed = false

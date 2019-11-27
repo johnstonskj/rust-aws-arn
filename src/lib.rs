@@ -88,8 +88,9 @@ This crate has attempted to be as lean as possible, with a really minimal set of
 we have include the following capabilities as optional features.
 
 * `serde_support` adds derived `Serialize` and `Deserialize` implementations for the `ARN` and
-   `Resource` types.
-* `ext_validation` adds extended, service specific, validation using an external configuration file.
+   `Resource` types. This feature is enabled by default.
+* `ext_validation` adds extended, service specific, validation using an external configuration
+  file. This feature is *not* enabled by default.
 
 ## Extended Validation
 
@@ -127,7 +128,7 @@ the rules applied if a matching configuration is found. The file is structured a
 #[macro_use]
 extern crate lazy_static;
 
-#[cfg(serde_support)]
+#[cfg(feature = "serde_support")]
 use serde::{Deserialize, Serialize};
 
 use regex::Regex;
@@ -156,7 +157,7 @@ use std::str::FromStr;
 /// > In some circumstances, paths can include a wildcard character, namely an asterisk (*).
 ///
 #[derive(Debug, Clone, PartialEq)]
-#[cfg_attr(serde_support, derive(Deserialize, Serialize))]
+#[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
 pub enum Resource {
     /// The wildcard resource.
     Any,
@@ -199,7 +200,7 @@ pub enum Resource {
 /// From [ARN Format](https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html#arns-syntax)
 ///
 #[derive(Debug, Clone)]
-#[cfg_attr(serde_support, derive(Deserialize, Serialize))]
+#[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
 pub struct ARN {
     /// The partition that the resource is in. For standard AWS Regions, the partition is` aws`.
     /// If you have resources in other partitions, the partition is `aws-partitionname`. For
@@ -255,8 +256,9 @@ pub enum ArnError {
     AccountIdWildcardNotAllowed,
     /// Missing the resource component.
     MissingResource,
-    /// The partition resource provided is not valid.
-    InvalidResource,
+    /// The partition resource provided is not valid, the name of the particular component
+    /// in error is included.
+    InvalidResource(String),
     /// The particular resource type does not allow resource wildcards.
     ResourceWildcardNotAllowed,
 }
@@ -284,7 +286,7 @@ lazy_static! {
 
 impl ARN {
     ///
-    /// Validate this ARN, if provided the `validators` struct will be used to also
+    /// Validate this ARN, if the `ext_validation` feature is enabled it will be used to
     /// provide any service-specific validation.
     ///
     pub fn validate(&self) -> Result<(), ArnError> {
@@ -388,26 +390,28 @@ impl Resource {
     ///
     pub fn validate(&self) -> Result<(), ArnError> {
         match self {
-            Resource::Id(id) => must_not_contain(id, &[':', '/', '*']),
-            Resource::Path(path) => must_not_contain(path, &[':']),
-            Resource::TypedId { the_type, id } => must_not_contain(the_type, &[':', '/', '*'])
-                .and_then(|_| must_not_contain(id, &[':', '/'])),
+            Resource::Id(id) => must_not_contain(id, "id", &[':', '/', '*']),
+            Resource::Path(path) => must_not_contain(path, "path", &[':']),
+            Resource::TypedId { the_type, id } => {
+                must_not_contain(the_type, "the_type", &[':', '/', '*'])
+                    .and_then(|_| must_not_contain(id, "id", &[':', '/']))
+            }
             Resource::QTypedId {
                 the_type,
                 id,
                 qualifier,
-            } => must_not_contain(the_type, &[':', '/', '*']).and_then(|_| {
-                must_not_contain(id, &[':', '/'])
-                    .and_then(|_| must_not_contain(qualifier, &[':', '/', '*']))
+            } => must_not_contain(the_type, "the_type", &[':', '/', '*']).and_then(|_| {
+                must_not_contain(id, "id", &[':', '/'])
+                    .and_then(|_| must_not_contain(qualifier, "qualifier", &[':', '/', '*']))
             }),
             _ => Ok(()),
         }
     }
 }
 
-fn must_not_contain(s: &String, chars: &[char]) -> Result<(), ArnError> {
+fn must_not_contain(s: &str, c: &str, chars: &[char]) -> Result<(), ArnError> {
     if s.contains(chars) {
-        Err(ArnError::InvalidResource)
+        Err(ArnError::InvalidResource(c.to_string()))
     } else {
         Ok(())
     }
@@ -461,7 +465,7 @@ impl FromStr for Resource {
                     qualifier: parts[2].to_string(),
                 })
             } else {
-                Err(ArnError::InvalidResource)
+                Err(ArnError::InvalidResource(s.to_string()))
             }
         } else if s.contains(PATH_SEPARATOR) {
             Ok(Resource::Path(s.to_string()))
@@ -505,7 +509,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_resource_to_string() {
+    fn test_valid_resource_to_string() {
         assert_eq!(Resource::Id("thing".to_string()).to_string(), "thing");
         assert_eq!(
             Resource::Path("mythings/athing".to_string()).to_string(),
@@ -531,8 +535,12 @@ mod tests {
     }
 
     #[test]
-    fn test_resource_from_str() {
+    fn test_resource_from_valid_str() {
         assert_eq!(Resource::from_str(WILD), Ok(Resource::Any));
+        assert_eq!(
+            Resource::from_str("athing"),
+            Ok(Resource::Id("athing".to_string()))
+        );
         assert_eq!(
             Resource::from_str("mythings/athing"),
             Ok(Resource::Path("mythings/athing".to_string()))
@@ -555,7 +563,7 @@ mod tests {
     }
 
     #[test]
-    fn test_arn_to_string() {
+    fn test_valid_arn_to_string() {
         let arn = ARN {
             partition: None,
             service: "s3".to_string(),
@@ -567,12 +575,210 @@ mod tests {
     }
 
     #[test]
-    fn test_arn_from_str() {
+    fn test_arn_from_valid_str() {
         let arn_str = "arn:aws:s3:us-east-1:123456789012:job/23476";
         let arn: ARN = arn_str.parse().unwrap();
         assert_eq!(arn.partition, Some("aws".to_string()));
         assert_eq!(arn.service, "s3".to_string());
         assert_eq!(arn.region, Some("us-east-1".to_string()));
         assert_eq!(arn.account_id, Some("123456789012".to_string()));
+    }
+
+    #[test]
+    fn test_valid_id_resource() {
+        let resource = Resource::Id("s3".to_string());
+        assert_eq!(resource.validate(), Ok(()));
+    }
+
+    #[test]
+    fn test_invalid_id_resource() {
+        let resource = Resource::Id("s:3".to_string());
+        assert_eq!(
+            resource.validate(),
+            Err(ArnError::InvalidResource("id".to_string()))
+        );
+        let resource = Resource::Id("s/3".to_string());
+        assert_eq!(
+            resource.validate(),
+            Err(ArnError::InvalidResource("id".to_string()))
+        );
+        let resource = Resource::Id("s3*".to_string());
+        assert_eq!(
+            resource.validate(),
+            Err(ArnError::InvalidResource("id".to_string()))
+        );
+    }
+
+    #[test]
+    fn test_valid_path_resource() {
+        let resource = Resource::Path("user/org/simon".to_string());
+        assert_eq!(resource.validate(), Ok(()));
+
+        let resource = Resource::Path("user/org/*".to_string());
+        assert_eq!(resource.validate(), Ok(()));
+    }
+
+    #[test]
+    fn test_invalid_path_resource() {
+        let resource = Resource::Path("user:simon".to_string());
+        assert_eq!(
+            resource.validate(),
+            Err(ArnError::InvalidResource("path".to_string()))
+        );
+    }
+
+    #[test]
+    fn test_valid_typed_id_resource() {
+        let resource = Resource::TypedId {
+            the_type: "user".to_string(),
+            id: "simon".to_string(),
+        };
+        assert_eq!(resource.validate(), Ok(()));
+
+        let resource = Resource::TypedId {
+            the_type: "user".to_string(),
+            id: "*".to_string(),
+        };
+        assert_eq!(resource.validate(), Ok(()));
+    }
+
+    #[test]
+    fn test_invalid_typed_id_resource() {
+        let resource = Resource::TypedId {
+            the_type: "us:er".to_string(),
+            id: "simon".to_string(),
+        };
+        assert_eq!(
+            resource.validate(),
+            Err(ArnError::InvalidResource("the_type".to_string()))
+        );
+        let resource = Resource::TypedId {
+            the_type: "us/er".to_string(),
+            id: "simon".to_string(),
+        };
+        assert_eq!(
+            resource.validate(),
+            Err(ArnError::InvalidResource("the_type".to_string()))
+        );
+        let resource = Resource::TypedId {
+            the_type: "us*er".to_string(),
+            id: "simon".to_string(),
+        };
+        assert_eq!(
+            resource.validate(),
+            Err(ArnError::InvalidResource("the_type".to_string()))
+        );
+
+        let resource = Resource::TypedId {
+            the_type: "user".to_string(),
+            id: "sim:on".to_string(),
+        };
+        assert_eq!(
+            resource.validate(),
+            Err(ArnError::InvalidResource("id".to_string()))
+        );
+        let resource = Resource::TypedId {
+            the_type: "user".to_string(),
+            id: "sim/on".to_string(),
+        };
+        assert_eq!(
+            resource.validate(),
+            Err(ArnError::InvalidResource("id".to_string()))
+        );
+    }
+
+    #[test]
+    fn test_valid_qtyped_id_resource() {
+        let resource = Resource::QTypedId {
+            the_type: "user".to_string(),
+            id: "simon".to_string(),
+            qualifier: "v2".to_string(),
+        };
+        assert_eq!(resource.validate(), Ok(()));
+
+        let resource = Resource::QTypedId {
+            the_type: "user".to_string(),
+            id: "*".to_string(),
+            qualifier: "v2".to_string(),
+        };
+        assert_eq!(resource.validate(), Ok(()));
+    }
+
+    #[test]
+    fn test_invalid_qtyped_id_resource() {
+        let resource = Resource::QTypedId {
+            the_type: "us:er".to_string(),
+            id: "simon".to_string(),
+            qualifier: "v2".to_string(),
+        };
+        assert_eq!(
+            resource.validate(),
+            Err(ArnError::InvalidResource("the_type".to_string()))
+        );
+        let resource = Resource::QTypedId {
+            the_type: "us/er".to_string(),
+            id: "simon".to_string(),
+            qualifier: "v2".to_string(),
+        };
+        assert_eq!(
+            resource.validate(),
+            Err(ArnError::InvalidResource("the_type".to_string()))
+        );
+        let resource = Resource::QTypedId {
+            the_type: "us*er".to_string(),
+            id: "simon".to_string(),
+            qualifier: "v2".to_string(),
+        };
+        assert_eq!(
+            resource.validate(),
+            Err(ArnError::InvalidResource("the_type".to_string()))
+        );
+
+        let resource = Resource::QTypedId {
+            the_type: "user".to_string(),
+            id: "sim:on".to_string(),
+            qualifier: "v2".to_string(),
+        };
+        assert_eq!(
+            resource.validate(),
+            Err(ArnError::InvalidResource("id".to_string()))
+        );
+        let resource = Resource::QTypedId {
+            the_type: "user".to_string(),
+            id: "sim/on".to_string(),
+            qualifier: "v2".to_string(),
+        };
+        assert_eq!(
+            resource.validate(),
+            Err(ArnError::InvalidResource("id".to_string()))
+        );
+
+        let resource = Resource::QTypedId {
+            the_type: "user".to_string(),
+            id: "simon".to_string(),
+            qualifier: "v:2".to_string(),
+        };
+        assert_eq!(
+            resource.validate(),
+            Err(ArnError::InvalidResource("qualifier".to_string()))
+        );
+        let resource = Resource::QTypedId {
+            the_type: "user".to_string(),
+            id: "simon".to_string(),
+            qualifier: "v/2".to_string(),
+        };
+        assert_eq!(
+            resource.validate(),
+            Err(ArnError::InvalidResource("qualifier".to_string()))
+        );
+        let resource = Resource::QTypedId {
+            the_type: "user".to_string(),
+            id: "simon".to_string(),
+            qualifier: "v*2".to_string(),
+        };
+        assert_eq!(
+            resource.validate(),
+            Err(ArnError::InvalidResource("qualifier".to_string()))
+        );
     }
 }

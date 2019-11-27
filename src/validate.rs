@@ -17,7 +17,6 @@ pub fn is_registered(service: &str, resource: &Resource) -> bool {
 pub fn validate(arn: &ARN) -> Result<(), ArnError> {
     match FORMATS.get(&make_key(&arn.service, &arn.resource)) {
         Some(format) => {
-            println!("Format: {:?}", format);
             // ------------------------------------------------------------------------------------
             if format.partition_required && arn.partition == None {
                 return Err(ArnError::MissingPartition);
@@ -57,21 +56,21 @@ pub fn validate(arn: &ARN) -> Result<(), ArnError> {
                 }
                 Resource::Id(id) => {
                     if format.resource_format != ResourceFormat::Id {
-                        return Err(ArnError::InvalidResource);
+                        return Err(ArnError::InvalidResource(format!("{:?}", &arn.resource)));
                     } else if !format.resource_wc_allowed && id.contains('*') {
                         return Err(ArnError::ResourceWildcardNotAllowed);
                     }
                 }
                 Resource::Path(path) => {
                     if format.resource_format != ResourceFormat::Path {
-                        return Err(ArnError::InvalidResource);
+                        return Err(ArnError::InvalidResource(format!("{:?}", &arn.resource)));
                     } else if !format.resource_wc_allowed && path.contains('*') {
                         return Err(ArnError::ResourceWildcardNotAllowed);
                     }
                 }
                 Resource::TypedId { the_type, id } => {
                     if format.resource_format != ResourceFormat::TypeId {
-                        return Err(ArnError::InvalidResource);
+                        return Err(ArnError::InvalidResource(format!("{:?}", &arn.resource)));
                     } else if the_type.contains('*')
                         || (!format.resource_wc_allowed && id.contains('*'))
                         || the_type.is_empty()
@@ -86,7 +85,7 @@ pub fn validate(arn: &ARN) -> Result<(), ArnError> {
                     qualifier,
                 } => {
                     if format.resource_format != ResourceFormat::QTypeId {
-                        return Err(ArnError::InvalidResource);
+                        return Err(ArnError::InvalidResource(format!("{:?}", &arn.resource)));
                     } else if the_type.contains('*')
                         || (!format.resource_wc_allowed
                             && (id.contains('*') || qualifier.contains('*')))

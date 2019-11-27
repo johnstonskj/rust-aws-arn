@@ -72,7 +72,8 @@ pub struct ArnBuilder {
 
 impl ResourceBuilder {
     /// Construct a resource with the specified `id` or `path`. If the string contains a '/'
-    /// character a Path is created, else an Id.
+    /// character a Path is created, else an Id. Using ':' in this input will cause the
+    /// function to panic.
     pub fn new(id_or_path: &str) -> Self {
         if id_or_path.contains(':') {
             panic!("You can't create qualified things");
@@ -147,7 +148,7 @@ impl ResourceBuilder {
         self.is_a(the_type)
     }
 
-    /// Add a `qualifier` to this resource
+    /// Add a `qualifier` to this resource.
     pub fn with(&mut self, qualifier: &str) -> &mut Self {
         let new_qualifier = qualifier.to_string();
         match &self.resource {
@@ -194,13 +195,16 @@ impl ResourceBuilder {
         self
     }
 
-    /// Add a version number, as a `qualifier`, to this resource
+    /// Add a version number, as a `qualifier`, to this resource -- this is a common use for
+    /// the qualifier component.
     pub fn with_version(&mut self, version: i32) -> &mut Self {
         self.with(version.to_string().as_str());
         self
     }
 
-    /// Construct a `Resource` from this `ResourceBuilder`.
+    /// Construct a `Resource` from this `ResourceBuilder`. Note that this function does not
+    /// consume `self`, this allows the construction of a builder that can vary one component
+    /// over and over to create new Resources.
     pub fn build(&self) -> Result<Resource, ArnError> {
         let new_resource = self.resource.clone();
         new_resource.validate().map(|_| new_resource)
@@ -297,7 +301,9 @@ impl ArnBuilder {
         self.any_resource()
     }
 
-    /// Construct an `ARN` from this `ArnBuilder`.
+    /// Construct an `ARN` from this `ArnBuilder`. Note that this function does not
+    /// consume `self`, this allows the construction of a builder that can vary one component
+    /// over and over to create new ARNs.
     pub fn build(&self) -> Result<ARN, ArnError> {
         let new_arn = self.arn.clone();
         new_arn.validate().map(|_| new_arn)
