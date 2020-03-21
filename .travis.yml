@@ -36,7 +36,7 @@ matrix:
   # Ignore failures in nightly, not ideal, but necessary
   allow_failures:
   - rust: nightly
-  - osx
+  - os: osx
 
 # Script supports packages and workspaces
 script:
