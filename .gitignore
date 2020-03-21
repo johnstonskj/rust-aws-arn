@@ -10,20 +10,6 @@ Cargo.lock
 **/*.rs.bk
 
 # IDE Created
-/.idea
-
-#Added by cargo
-#
-#already existing elements are commented out
-
-/target
-#**/*.rs.bk
+.idea
 
 
-#Added by cargo
-#
-#already existing elements are commented out
-
-#/target
-#**/*.rs.bk
-#Cargo.lock
