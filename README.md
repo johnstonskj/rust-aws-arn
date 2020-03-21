@@ -2,7 +2,7 @@
 Provides types, builders, and other helpers to manipulate AWS Amazon Resource Name (ARN) strings.
 
 ![MIT License](https://img.shields.io/badge/license-mit-118811.svg)
-![Minimum Rust Version](https://img.shields.io/badge/Min%20Rust-1.38-green.svg)
+![Minimum Rust Version](https://img.shields.io/badge/Min%20Rust-1.34-green.svg)
 [![crates.io](https://img.shields.io/crates/v/aws-arn.svg)](https://crates.io/crates/aws-arn)
 [![docs.rs](https://docs.rs/aws-arn/badge.svg)](https://docs.rs/aws-arn)
 [![travis.ci](https://travis-ci.org/johnstonskj/rust-aws-arn.svg?branch=master)](https://travis-ci.org/johnstonskj/rust-aws-arn)
