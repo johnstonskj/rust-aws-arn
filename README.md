@@ -6,6 +6,7 @@ Provides types, builders, and other helpers to manipulate AWS Amazon Resource Na
 [![crates.io](https://img.shields.io/crates/v/aws-arn.svg)](https://crates.io/crates/aws-arn)
 [![docs.rs](https://docs.rs/aws-arn/badge.svg)](https://docs.rs/aws-arn)
 ![Build](https://github.com/johnstonskj/rust-aws-arn/workflows/Rust/badge.svg)
+![Audit](https://github.com/johnstonskj/rust-aws-arn/workflows/Security%20audit/badge.svg)
 [![GitHub stars](https://img.shields.io/github/stars/johnstonskj/rust-aws-arn.svg)](https://github.com/johnstonskj/rust-aws-arn/stargazers)
 
 The ARN is a key component of all AWS service APIs and yet nearly all client toolkits treat it simply as a string. While this may be a reasonable and expedient decision, it seems there might be a need to not only ensure correctness of ARNs with validators but also constructors that allow making these strings correclt in the first place. 
