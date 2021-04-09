@@ -1,117 +1,103 @@
 /*!
-Provides types, builders, and other helpers to manipulate AWS Amazon Resource Name (ARN) strings.
-
-The ARN is a key component of all AWS service APIs and yet nearly all client toolkits treat it
-simply as a string. While this may be a reasonable and expedient decision, it seems there might
-be a need to not only ensure correctness of ARNs with validators but also constructors that allow
-making these strings correclt in the first place.
-
-# ARN Types
-
-This crate provides three levels of ARN manipulation, the first is the direct construction of an
-ARN type (module `aws_arn` - the core `Resource` and `ARN` types).
-
-```rust
-use aws_arn::{ARN, Resource};
-
-let arn = ARN {
-    partition: Some("aws".to_string()),
-    service: "s3".to_string(),
-    region: None,
-    account_id: None,
-    resource: Resource::Path("".to_string())};
-```
-
-One issue with the code above is that, unless you subsequently call `arn.validate()` the
-resulting ARN could be garbage. Alternatively, using `FromStr,` you can parse a string into an
-ARN which will call `validate()` for you.
-
-```rust
-use aws_arn::ARN;
-use std::str::FromStr;
-
-let arn: ARN = "arn:aws:s3:::mythings/thing-1".parse().expect("didn't look like an ARN");
-```
-
-The next is to use a more readable builder which also allows you to ignore those fields in the ARN
-you don't always need (module `aws_arn::builder` - the `ResourceBuilder` and `ArnBuilder` types
-providing a more fluent style of ARN construction).
-
-```rust
-use aws_arn::builder::{ArnBuilder, ResourceBuilder};
-
-let arn = ArnBuilder::new("s3")
-    .resource(ResourceBuilder::new(&format!("{}/{}", "mythings", "thing-1")).build().unwrap())
-    .in_partition("aws")
-    .build().unwrap();
-```
-
-Finally, it is possible to use resource-type specific functions that allow an even more direct and
-simple construction (module `aws_arn::builder::{service}` - *service builder functions*.
-
-```rust
-use aws_arn::builder::s3;
-
-let arn = s3::object("mythings", "thing-1");
-```
-
-For more, see the AWS documentation for [Amazon Resource Name
-(ARN)](https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html). In a lot
-of cases the documentation for elements of the ARN and Resource types use descriptions taken
-directly from the AWS documentation.
-
-# Validation
-
-As mentioned above, both the `ARN` and `Resource` types have a `validate()` function that will
-test for consistency. Also, this validation is optional if you construction these types
-directly. The validation supported by these two resources is limited to syntactic values,
-described in the following table. This table mentions *identifier* as a type, this is a pattern
-where a string starts with an alphabetic character, then zero or more alphanumeric characters
-and the characters '-' and '_'.
-
-| Type       | Field         | Tests |
-|------------|---------------|-------|
-| `ARN`      | `partition`   | Either "aws" or "aws-*{identifier}*".  |
-| `ARN`      | `service`     | Must be an *identifier*.  |
-| `ARN`      | `region`      | Must be an *identifier*.  |
-| `ARN`      | `account_id`  | A 12 character, ASCII digit, String.  |
-| `ARN`      | `resource`    | Below.  |
-| `Resource` | `id`          | Must not contain ':', '/', or '*'  |
-| `Resource` | `path`        | Must not contain ':'  |
-| `Resource` | `the_type`    | Must not contain ':', '/'  |
-| `Resource` | `qualifier`   | Must not contain ':', '/'  |
-
-
-# Optional Features
-
-This crate has attempted to be as lean as possible, with a really minimal set of dependencies,
-we have include the following capabilities as optional features.
-
-* `serde_support` adds derived `Serialize` and `Deserialize` implementations for the `ARN` and
-   `Resource` types. This feature is enabled by default.
-* `ext_validation` adds extended, service specific, validation using an external configuration
-  file. This feature is *not* enabled by default.
-
-## Extended Validation
-
-The feature `ext_validation` extends the capability of the `ARN::validate()` by applying a set of
-rules for service and resource type pairs, for example S3 buckets or lambda functions. The rules
-are defined in a configuration file, `service-formats.toml` in the crate and which is read and
-the rules applied if a matching configuration is found. The file is structured as a list of
-`[[format]]` maps and the following table summarizes the fields in this map.
-
-| Name                | Type         | Required | Comments |
-|---------------------|--------------|----------|----------|
-| `name`              | *identifier* | **Yes**  | Service name, e.g. "s3" |
-`resource_type`       | *identifier* | No       | Resource type, optional |
-`partition_required`  | boolean      | **Yes**  | Must you specify a partition |
-`region_required`     | boolean      | **Yes**  | Must you specify a region |
-`region_wc_allowed`   | boolean      | No       | Wildcard, '*' character is allowed in a region string, default is false |
-`account_id_required` | boolean      | **Yes**  | Must you specify an account ID |
-`account_wc_allowed`  | boolean      | No       | Wildcard, '*' character is allowed in a region string, default is false |
-`resource_format`     | enum         | **Yes**  | Defines the required format for the resource portion |
-`resource_wc_allowed` | boolean      | No       | Wildcard, '*' character is allowed in a region string, default is false |
-
+* Provides types, builders, and other helpers to manipulate AWS
+* [Amazon Resource Name (ARN)](https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
+* strings.
+*
+* The ARN is a key component of all AWS service APIs and yet nearly all client toolkits treat it
+* simply as a string. While this may be a reasonable and expedient decision, it seems there might
+* be a need to not only ensure correctness of ARNs with validators but also constructors that allow
+* making these strings correclt in the first place.
+*
+* # ARN Types
+*
+* This crate provides a number of levels of ARN manipulation, the first is the direct construction
+* of an ARN type using the core `ARN`, `Identifier`, and `ResourceIdentifier` types.
+*
+* ```rust
+* use aws_arn::{ARN, ResourceIdentifier};
+* use aws_arn::known::{Partition, Service};
+* use std::str::FromStr;
+*
+* let arn = ARN {
+*     partition: Some(Partition::default().into()),
+*     service: Service::S3.into(),
+*     region: None,
+*     account_id: None,
+*     resource: ResourceIdentifier::from_str("mythings/thing-1").unwrap()
+* };
+* ```
+*
+* In the example above, as we are defining a minimal ARN we could use one of the defined constructor
+* functions.
+*
+* ```rust
+* use aws_arn::{ARN, ResourceIdentifier};
+* use aws_arn::known::Service;
+* use std::str::FromStr;
+*
+* let arn = ARN::aws(
+*     Service::S3.into(),
+*     ResourceIdentifier::from_str("mythings/thing-1").unwrap()
+* );
+* ```
+*
+* Alternatively, using `FromStr,` you can parse an existing ARN string into an ARN value.
+*
+* ```rust
+* use aws_arn::ARN;
+* use std::str::FromStr;
+*
+* let arn: ARN = "arn:aws:s3:::mythings/thing-1".parse().expect("didn't look like an ARN");
+* ```
+*
+* Another approach is to use a more readable *builder* which also allows you to ignore those fields
+* in the ARN you don't always need and uses a more fluent style of ARN construction.
+*
+* ```rust
+* use aws_arn::builder::{ArnBuilder, ResourceBuilder};
+* use aws_arn::known::{Partition, Service};
+* use aws_arn::{ARN, Identifier};
+* use std::str::FromStr;
+*
+* let arn: ARN = ArnBuilder::service_id(Service::S3.into())
+*     .resource(ResourceBuilder::named(Identifier::from_str("mythings").unwrap())
+*         .resource_name(Identifier::new_unchecked("my-layer"))
+*         .build_resource_path())
+*     .in_partition_id(Partition::Aws.into())
+*     .into();
+* ```
+*
+* Finally, it is possible to use resource-type specific functions that allow an even more direct and
+* simple construction (module `aws_arn::builder::{service}` - *service builder functions*, although
+* at this time there are few supported services.
+*
+* ```rust
+* use aws_arn::builder::s3;
+* use aws_arn::Identifier;
+* use std::str::FromStr;
+*
+* let arn = s3::object(
+*     Identifier::from_str("mythings").unwrap(),
+*     Identifier::from_str("thing-1").unwrap(),
+* );
+* ```
+*
+* For more, see the AWS documentation for [Amazon Resource Name
+* (ARN)](https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html) documentation.
+*
+* # Optional Features
+*
+* This crate has attempted to be as lean as possible, with a really minimal set of dependencies,
+* we have include the following capabilities as optional features.
+*
+* * `builders` adds the builder module. This feature is enabled by default, it also requires the
+*   `known` feature.
+* * `known` adds a module containing enums for partitions, regions, and services.
+*   This feature is enabled by default.
+* * `serde_support` adds derived `Serialize` and `Deserialize` implementations for the `ARN` and
+*   `Resource` types. This feature is enabled by default.
+*
+*
 */
 
 // ------------------------------------------------------------------------------------------------
@@ -119,20 +105,34 @@ the rules applied if a matching configuration is found. The file is structured a
 // ------------------------------------------------------------------------------------------------
 
 #![warn(
+    // ---------- Stylistic
+    future_incompatible,
+    nonstandard_style,
+    rust_2018_idioms,
+    trivial_casts,
+    trivial_numeric_casts,
+    // ---------- Public
     missing_debug_implementations,
     missing_docs,
+    unreachable_pub,
+    // ---------- Unsafe
+    unsafe_code,
+    // ---------- Unused
     unused_extern_crates,
-    rust_2018_idioms
+    unused_import_braces,
+    unused_qualifications,
+    unused_results,
 )]
 
+#[cfg(feature = "consts")]
 #[macro_use]
 extern crate lazy_static;
 
 #[cfg(feature = "serde_support")]
 use serde::{Deserialize, Serialize};
 
-use regex::Regex;
 use std::fmt::{Debug, Display, Error, Formatter};
+use std::ops::Deref;
 use std::str::FromStr;
 
 // ------------------------------------------------------------------------------------------------
@@ -140,48 +140,32 @@ use std::str::FromStr;
 // ------------------------------------------------------------------------------------------------
 
 ///
-/// Contains the resource part of the ARN. There **must** be a `resource-id`, there **may** be
-/// a `resource-type`, and there **may** be a qualifier. The separator between type and id
-/// may be prefix-like (':') or path-like (PATH_SEPARATOR).
+/// A string value that is used to capture the partition, service, region, and account ID components
+/// of an ARN. These are ASCII only, may not include control characters, spaces, '/', or ':'.
 ///
-/// > The content of this part of the ARN varies by service. A resource identifier can be the name
-/// > or ID of the resource (for example, user/Bob or instance/i-1234567890abcdef0) or a
-/// > resource path. For example, some resource identifiers include a parent resource
-/// > (sub-resource-type/parent-resource/sub-resource) or a qualifier such as a version
-/// > (resource-type:resource-name:qualifier).
-///
-/// > Some resource ARNs can include a path. For example, in Amazon S3, the resource identifier
-/// > is an object name that can include slashes (/) to form a path. Similarly, IAM user names
-/// > and group names can include paths.
-///
-/// > In some circumstances, paths can include a wildcard character, namely an asterisk (*).
-///
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
-pub enum Resource {
-    /// The wildcard resource.
-    Any,
-    /// Matches `resource-id`
-    Id(String),
-    /// Matches `resource-id(/resource-id)*`
-    Path(String),
-    /// Matches `resource-type:resource-id`
-    TypedId {
-        /// The `resource-type` component of this resource
-        the_type: String,
-        /// The `resource-id` component of this resource
-        id: String,
-    },
-    /// Matches `resource-type:resource-id:qualifier`
-    QTypedId {
-        /// The `resource-type` component of this resource
-        the_type: String,
-        /// The `resource-id` component of this resource
-        id: String,
-        /// The `qualifier` component of this resource
-        qualifier: String,
-    },
-}
+pub struct Identifier(String);
+
+///
+/// A string value that is used to capture the resource component of an ARN. These are ASCII only,
+/// may not include control characters but unlike `Identifier` they may include spaces, '/', and ':'.
+///
+/// > *The content of this part of the ARN varies by service. A resource identifier can be the name
+/// > or ID of the resource (for example, `user/Bob` or `instance/i-1234567890abcdef0`) or a
+/// > resource path. For example, some resource identifiers include a parent resource
+/// > (`sub-resource-type/parent-resource/sub-resource`) or a qualifier such as a version
+/// > (`resource-type:resource-name:qualifier`).*
+///
+/// > *Some resource ARNs can include a path. For example, in Amazon S3, the resource identifier
+/// > is an object name that can include slashes ('/') to form a path. Similarly, IAM user names
+/// > and group names can include paths.*
+///
+/// > *In some circumstances, paths can include a wildcard character, namely an asterisk ('*').*
+///
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
+pub struct ResourceIdentifier(String);
 
 ///
 /// Amazon Resource Names (ARNs) uniquely identify AWS resources. We require an ARN when you
@@ -199,68 +183,34 @@ pub enum Resource {
 ///
 /// From [ARN Format](https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html#arns-syntax)
 ///
-#[derive(Debug, Clone)]
+#[allow(clippy::upper_case_acronyms)]
+#[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
 pub struct ARN {
     /// The partition that the resource is in. For standard AWS Regions, the partition is` aws`.
     /// If you have resources in other partitions, the partition is `aws-partitionname`. For
-    /// example, the partition for resources in the China (Beijing) Region is `aws-cn`.
-    pub partition: Option<String>,
-    /// The service namespace that identifies the AWS product (for example, Amazon S3, IAM,
-    /// or Amazon RDS).
-    pub service: String,
+    /// example, the partition for resources in the China partition is `aws-cn`. The module
+    /// `consts::partition` provides common values as constants (if the `consts` feature is
+    /// enabled).
+    pub partition: Option<Identifier>,
+    /// The service namespace that identifies the AWS. The module `consts::service` provides
+    //  common values as constants (if the `consts` feature is enabled).
+    pub service: Identifier,
     /// The Region that the resource resides in. The ARNs for some resources do not require
-    /// a Region, so this component might be omitted.
-    pub region: Option<String>,
+    /// a Region, so this component might be omitted. The module `consts::region` provides
+    /// common values as constants (if the `consts` feature is enabled).
+    pub region: Option<Identifier>,
     /// The ID of the AWS account that owns the resource, without the hyphens. For example,
     /// `123456789012`. The ARNs for some resources don't require an account number, so this
-    /// component might be omitted.
-    pub account_id: Option<String>,
+    /// component may be omitted.
+    pub account_id: Option<Identifier>,
     /// The content of this part of the ARN varies by service. A resource identifier can
     /// be the name or ID of the resource (for example, `user/Bob` or
     /// `instance/i-1234567890abcdef0`) or a resource path. For example, some resource
     /// identifiers include a parent resource
     /// (`sub-resource-type/parent-resource/sub-resource`) or a qualifier such as a
     /// version (`resource-type:resource-name:qualifier`).
-    pub resource: Resource,
-}
-
-///
-/// Errors that may arise parsing an ARN with `FromStr::from_str()`.
-///
-#[derive(Debug, PartialEq)]
-pub enum ArnError {
-    /// Need at least 6 components.
-    TooFewComponents,
-    /// Missing the 'arn' prefix string.
-    MissingPrefix,
-    /// Missing the partition component.
-    MissingPartition,
-    /// The partition component provided is not valid.
-    InvalidPartition,
-    /// Missing the service component.
-    MissingService,
-    /// The service component provided is not valid.
-    InvalidService,
-    /// Missing the region component.
-    MissingRegion,
-    /// The partition region provided is not valid.
-    InvalidRegion,
-    /// The particular resource type does not allow region wildcards.
-    RegionWildcardNotAllowed,
-    /// Missing the account id component.
-    MissingAccountId,
-    /// The partition account id provided is not valid.
-    InvalidAccountId,
-    /// The particular resource type does not allow account wildcards.
-    AccountIdWildcardNotAllowed,
-    /// Missing the resource component.
-    MissingResource,
-    /// The partition resource provided is not valid, the name of the particular component
-    /// in error is included.
-    InvalidResource(String),
-    /// The particular resource type does not allow resource wildcards.
-    ResourceWildcardNotAllowed,
+    pub resource: ResourceIdentifier,
 }
 
 // ------------------------------------------------------------------------------------------------
@@ -269,57 +219,209 @@ pub enum ArnError {
 
 const ARN_PREFIX: &str = "arn";
 
-const ARN_SEPARATOR: char = ':';
-
-const ARN_SEPARATOR_STR: &str = ":";
-
-const DEFAULT_PARTITION: &str = "aws";
+const PART_SEPARATOR: char = ':';
 
 const PATH_SEPARATOR: char = '/';
 
-const WILD: &str = "*";
+const RESOURCE_ID_ANY: &str = "*";
 
-lazy_static! {
-    static ref PARTITION: Regex = Regex::new(r"^aws(\-[a-zA-Z][a-zA-Z0-9\-]+)?$").unwrap();
-    static ref IDENTIFIER: Regex = Regex::new(r"^[a-zA-Z][a-zA-Z0-9\-]+$").unwrap();
-}
+// ------------------------------------------------------------------------------------------------
 
-impl ARN {
-    ///
-    /// Validate this ARN, if the `ext_validation` feature is enabled it will be used to
-    /// provide any service-specific validation.
-    ///
-    pub fn validate(&self) -> Result<(), ArnError> {
-        if let Some(partition) = &self.partition {
-            if !PARTITION.is_match(&partition) {
-                return Err(ArnError::InvalidPartition);
-            }
-        }
-
-        if !IDENTIFIER.is_match(&self.service) {
-            return Err(ArnError::InvalidService);
-        }
-
-        if let Some(region) = &self.region {
-            if !IDENTIFIER.is_match(region) {
-                return Err(ArnError::InvalidRegion);
-            }
-        }
-
-        if let Some(account_id) = &self.account_id {
-            if account_id.len() != 12 || !account_id.chars().all(|c| c.is_ascii_digit()) {
-                return Err(ArnError::InvalidAccountId);
-            }
-        }
-
-        self.resource.validate()?;
-
-        if validate::is_registered(&self.service, &self.resource) {
-            validate::validate(self)?
-        }
-        Ok(())
+impl Default for Identifier {
+    fn default() -> Self {
+        Self(String::default())
     }
 }
+
+impl Display for Identifier {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+impl FromStr for Identifier {
+    type Err = ArnError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if Self::is_valid(s) {
+            Ok(Self(s.to_string()))
+        } else {
+            Err(ArnError::InvalidIdentifier(s.to_string()))
+        }
+    }
+}
+
+impl From<Identifier> for String {
+    fn from(v: Identifier) -> Self {
+        v.0
+    }
+}
+
+impl Deref for Identifier {
+    type Target = str;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl Identifier {
+    /// Construct a new `Identifier` from the provided string **without** checking it's validity.
+    /// This can be a useful method to improve performance for statically, or well-known, values;
+    /// however, in general `FromStr::from_str` should be used.
+    pub fn new_unchecked(s: &str) -> Self {
+        Self(s.to_string())
+    }
+
+    /// Returns `true` if the provided string is a valid `Identifier` value, else `false`.
+    pub fn is_valid(s: &str) -> bool {
+        !s.is_empty()
+            && s.chars()
+                .all(|c| c > '\u{1F}' && c < '\u{7F}' && c != ' ' && c != '/' && c != ':')
+    }
+}
+
+// ------------------------------------------------------------------------------------------------
+
+impl Default for ResourceIdentifier {
+    fn default() -> Self {
+        Self(String::default())
+    }
+}
+
+impl Display for ResourceIdentifier {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+impl FromStr for ResourceIdentifier {
+    type Err = ArnError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if Self::is_valid(s) {
+            Ok(Self(s.to_string()))
+        } else {
+            Err(ArnError::InvalidResource(s.to_string()))
+        }
+    }
+}
+
+impl From<ResourceIdentifier> for String {
+    fn from(v: ResourceIdentifier) -> Self {
+        v.0
+    }
+}
+
+impl From<Identifier> for ResourceIdentifier {
+    fn from(v: Identifier) -> Self {
+        ResourceIdentifier::new_unchecked(&v.0)
+    }
+}
+
+impl Deref for ResourceIdentifier {
+    type Target = str;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl ResourceIdentifier {
+    /// Construct a resource identifier that contains only the wildcard character `'*'`.
+    pub fn any() -> Self {
+        Self(RESOURCE_ID_ANY.to_string())
+    }
+
+    /// Construct a resource identifier, as a path, using the `Identifier` path components.
+    pub fn from_id_path(path: &[Identifier]) -> Self {
+        Self::new_unchecked(
+            &path
+                .iter()
+                .map(Identifier::to_string)
+                .collect::<Vec<String>>()
+                .join(&PATH_SEPARATOR.to_string()),
+        )
+    }
+
+    /// Construct a resource identifier, as a qualified ID, using the `Identifier` path components.
+    pub fn from_qualified_id(qualified: &[Identifier]) -> Self {
+        Self::new_unchecked(
+            &qualified
+                .iter()
+                .map(Identifier::to_string)
+                .collect::<Vec<String>>()
+                .join(&PART_SEPARATOR.to_string()),
+        )
+    }
+
+    /// Construct a resource identifier, as a path, using the `ResourceIdentifier` path components.
+    pub fn from_path(path: &[ResourceIdentifier]) -> Self {
+        Self::new_unchecked(
+            &path
+                .iter()
+                .map(ResourceIdentifier::to_string)
+                .collect::<Vec<String>>()
+                .join(&PATH_SEPARATOR.to_string()),
+        )
+    }
+
+    /// Construct a resource identifier, as a qualified ID, using the `ResourceIdentifier` path components.
+    pub fn from_qualified(qualified: &[ResourceIdentifier]) -> Self {
+        Self::new_unchecked(
+            &qualified
+                .iter()
+                .map(ResourceIdentifier::to_string)
+                .collect::<Vec<String>>()
+                .join(&PART_SEPARATOR.to_string()),
+        )
+    }
+
+    /// Construct a new `ResourceIdentifier` from the provided string **without** checking it's
+    /// validity. This can be a useful method to improve performance for statically, or well-known,
+    /// values; however, in general `FromStr::from_str` should be used.
+    pub fn new_unchecked(s: &str) -> Self {
+        Self(s.to_string())
+    }
+
+    /// Returns `true` if the provided string is a valid `ResourceIdentifier` value, else `false`.
+    pub fn is_valid(s: &str) -> bool {
+        !s.is_empty() && s.chars().all(|c| c > '\u{1F}' && c < '\u{7F}')
+    }
+
+    /// Return `true` if this is a wildcard resource identifier, else `false`.
+    pub fn is_any(&self) -> bool {
+        self.0 == RESOURCE_ID_ANY
+    }
+
+    /// Return `true` if this identifier contains path separator characters, else `false`.
+    pub fn contains_path(&self) -> bool {
+        self.0.contains(PATH_SEPARATOR)
+    }
+
+    /// Return the list of path components when split using the path separator character.
+    pub fn path_split(&self) -> Vec<ResourceIdentifier> {
+        self.0
+            .split(PATH_SEPARATOR)
+            .map(ResourceIdentifier::new_unchecked)
+            .collect()
+    }
+
+    /// Return `true` if this identifier contains qualifier separator characters, else `false`.
+    pub fn contains_qualified(&self) -> bool {
+        self.0.contains(PART_SEPARATOR)
+    }
+
+    /// Return the list of path components when split using the qualifier separator character.
+    pub fn qualifier_split(&self) -> Vec<ResourceIdentifier> {
+        self.0
+            .split(PART_SEPARATOR)
+            .map(ResourceIdentifier::new_unchecked)
+            .collect()
+    }
+}
+
+// ------------------------------------------------------------------------------------------------
 
 impl Display for ARN {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
@@ -330,14 +432,20 @@ impl Display for ARN {
                 ARN_PREFIX.to_string(),
                 self.partition
                     .as_ref()
-                    .unwrap_or(&DEFAULT_PARTITION.to_string())
-                    .clone(),
-                self.service.clone(),
-                self.region.as_ref().unwrap_or(&String::new()).clone(),
-                self.account_id.as_ref().unwrap_or(&String::new()).clone(),
-                self.resource.clone().to_string()
+                    .unwrap_or(&known::Partition::default().into())
+                    .to_string(),
+                self.service.to_string(),
+                self.region
+                    .as_ref()
+                    .unwrap_or(&Identifier::default())
+                    .to_string(),
+                self.account_id
+                    .as_ref()
+                    .unwrap_or(&Identifier::default())
+                    .to_string(),
+                self.resource.to_string()
             ]
-            .join(ARN_SEPARATOR_STR)
+            .join(&PART_SEPARATOR.to_string())
         )
     }
 }
@@ -351,7 +459,7 @@ impl FromStr for ARN {
     /// * `arn:partition:service:region:account-id: | resource part |`
     ///
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let mut parts: Vec<&str> = s.split(ARN_SEPARATOR).collect();
+        let mut parts: Vec<&str> = s.split(PART_SEPARATOR).collect();
         if parts.len() < 6 {
             Err(ArnError::TooFewComponents)
         } else if parts[0] != ARN_PREFIX {
@@ -360,117 +468,53 @@ impl FromStr for ARN {
             let new_arn = ARN {
                 partition: if parts[1].is_empty() {
                     None
+                } else if parts[1] == "aws" || parts[1].starts_with("aws-") {
+                    Some(Identifier::from_str(parts[1])?)
                 } else {
-                    Some(parts[1].to_string())
+                    return Err(ArnError::InvalidPartition);
                 },
-                service: parts[2].to_string(),
+                service: Identifier::from_str(parts[2])?,
                 region: if parts[3].is_empty() {
                     None
                 } else {
-                    Some(parts[3].to_string())
+                    Some(Identifier::from_str(parts[3])?)
                 },
                 account_id: if parts[4].is_empty() {
                     None
                 } else {
-                    Some(parts[4].to_string())
+                    Some(Identifier::from_str(parts[4])?)
                 },
                 resource: {
                     let resource_parts: Vec<&str> = parts.drain(5..).collect();
-                    Resource::from_str(&resource_parts.join(ARN_SEPARATOR_STR))?
+                    ResourceIdentifier::from_str(&resource_parts.join(&PART_SEPARATOR.to_string()))?
                 },
             };
-            new_arn.validate().map(|_| new_arn)
+
+            Ok(new_arn)
         }
     }
 }
 
-impl Resource {
-    ///
-    /// Validate the syntax of a resource, not any service-specific semantics.
-    ///
-    pub fn validate(&self) -> Result<(), ArnError> {
-        match self {
-            Resource::Id(id) => must_not_contain(id, "id", &[':', '/', '*']),
-            Resource::Path(path) => must_not_contain(path, "path", &[':']),
-            Resource::TypedId { the_type, id } => {
-                must_not_contain(the_type, "the_type", &[':', '/', '*'])
-                    .and_then(|_| must_not_contain(id, "id", &[':', '/']))
-            }
-            Resource::QTypedId {
-                the_type,
-                id,
-                qualifier,
-            } => must_not_contain(the_type, "the_type", &[':', '/', '*']).and_then(|_| {
-                must_not_contain(id, "id", &[':', '/'])
-                    .and_then(|_| must_not_contain(qualifier, "qualifier", &[':', '/', '*']))
-            }),
-            _ => Ok(()),
+impl ARN {
+    /// Construct a minimal `ARN` value with simply a service and resource.
+    pub fn new(service: Identifier, resource: ResourceIdentifier) -> Self {
+        Self {
+            partition: None,
+            service,
+            region: None,
+            account_id: None,
+            resource,
         }
     }
-}
 
-fn must_not_contain(s: &str, c: &str, chars: &[char]) -> Result<(), ArnError> {
-    if s.contains(chars) {
-        Err(ArnError::InvalidResource(c.to_string()))
-    } else {
-        Ok(())
-    }
-}
-
-impl Display for Resource {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
-        match self {
-            Resource::Any => write!(f, "{}", WILD),
-            Resource::Id(id) => write!(f, "{}", id),
-            Resource::Path(path) => write!(f, "{}", path),
-            Resource::TypedId { the_type, id } => write!(f, "{}{}{}", the_type, ARN_SEPARATOR, id),
-            Resource::QTypedId {
-                the_type,
-                id,
-                qualifier,
-            } => write!(
-                f,
-                "{}{}{}{}{}",
-                the_type, ARN_SEPARATOR, id, ARN_SEPARATOR, qualifier
-            ),
-        }
-    }
-}
-
-impl FromStr for Resource {
-    type Err = ArnError;
-
-    ///
-    /// Technically, according to Formats    
-    /// * `resource-id`
-    /// * `resource-type/resource-id`
-    /// * `resource-type:resource-id[:qualifier]`
-    ///   
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        if s.is_empty() {
-            Err(ArnError::MissingResource)
-        } else if s == WILD {
-            Ok(Resource::Any)
-        } else if s.contains(ARN_SEPARATOR) {
-            let parts: Vec<&str> = s.split(ARN_SEPARATOR).collect();
-            if parts.len() == 2 {
-                Ok(Resource::TypedId {
-                    the_type: parts[0].to_string(),
-                    id: parts[1].to_string(),
-                })
-            } else if parts.len() == 3 {
-                Ok(Resource::QTypedId {
-                    the_type: parts[0].to_string(),
-                    id: parts[1].to_string(),
-                    qualifier: parts[2].to_string(),
-                })
-            } else {
-                Err(ArnError::InvalidResource(s.to_string()))
-            }
-        } else if s.contains(PATH_SEPARATOR) {
-            Ok(Resource::Path(s.to_string()))
-        } else {
-            Ok(Resource::Id(s.to_string()))
+    /// Construct a minimal `ARN` value with simply a service and resource in the `aws` partition.
+    pub fn aws(service: Identifier, resource: ResourceIdentifier) -> Self {
+        Self {
+            partition: Some(known::Partition::default().into()),
+            service,
+            region: None,
+            account_id: None,
+            resource,
         }
     }
 }
@@ -479,306 +523,12 @@ impl FromStr for Resource {
 // Modules
 // ------------------------------------------------------------------------------------------------
 
+#[cfg(feature = "builders")]
 pub mod builder;
 
-#[cfg(feature = "ext_validation")]
-mod validate;
+#[cfg(feature = "known")]
+pub mod known;
 
-#[cfg(not(feature = "ext_validation"))]
-mod validate {
-    //
-    // A stub for the module when the feature is not present.
-    //
-    use crate::{ArnError, Resource, ARN};
-
-    pub fn is_registered(_service: &str, _resource: &Resource) -> bool {
-        false
-    }
-
-    pub fn validate(_arn: &ARN) -> Result<(), ArnError> {
-        Ok(())
-    }
-}
-
-// ------------------------------------------------------------------------------------------------
-// Unit Tests
-// ------------------------------------------------------------------------------------------------
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_valid_resource_to_string() {
-        assert_eq!(Resource::Id("thing".to_string()).to_string(), "thing");
-        assert_eq!(
-            Resource::Path("mythings/athing".to_string()).to_string(),
-            "mythings/athing"
-        );
-        assert_eq!(
-            Resource::TypedId {
-                the_type: "things".to_string(),
-                id: "athing".to_string()
-            }
-            .to_string(),
-            "things:athing"
-        );
-        assert_eq!(
-            Resource::QTypedId {
-                the_type: "things".to_string(),
-                id: "athing".to_string(),
-                qualifier: "v2".to_string()
-            }
-            .to_string(),
-            "things:athing:v2"
-        );
-    }
-
-    #[test]
-    fn test_resource_from_valid_str() {
-        assert_eq!(Resource::from_str(WILD), Ok(Resource::Any));
-        assert_eq!(
-            Resource::from_str("athing"),
-            Ok(Resource::Id("athing".to_string()))
-        );
-        assert_eq!(
-            Resource::from_str("mythings/athing"),
-            Ok(Resource::Path("mythings/athing".to_string()))
-        );
-        assert_eq!(
-            Resource::from_str("things:athing"),
-            Ok(Resource::TypedId {
-                the_type: "things".to_string(),
-                id: "athing".to_string()
-            })
-        );
-        assert_eq!(
-            Resource::from_str("things:athing:v2"),
-            Ok(Resource::QTypedId {
-                the_type: "things".to_string(),
-                id: "athing".to_string(),
-                qualifier: "v2".to_string()
-            })
-        );
-    }
-
-    #[test]
-    fn test_valid_arn_to_string() {
-        let arn = ARN {
-            partition: None,
-            service: "s3".to_string(),
-            region: None,
-            account_id: None,
-            resource: Resource::Path("mythings/athing".to_string()),
-        };
-        assert_eq!(arn.to_string(), "arn:aws:s3:::mythings/athing");
-    }
-
-    #[test]
-    fn test_arn_from_valid_str() {
-        let arn_str = "arn:aws:s3:us-east-1:123456789012:job/23476";
-        let arn: ARN = arn_str.parse().unwrap();
-        assert_eq!(arn.partition, Some("aws".to_string()));
-        assert_eq!(arn.service, "s3".to_string());
-        assert_eq!(arn.region, Some("us-east-1".to_string()));
-        assert_eq!(arn.account_id, Some("123456789012".to_string()));
-    }
-
-    #[test]
-    fn test_valid_id_resource() {
-        let resource = Resource::Id("s3".to_string());
-        assert_eq!(resource.validate(), Ok(()));
-    }
-
-    #[test]
-    fn test_invalid_id_resource() {
-        let resource = Resource::Id("s:3".to_string());
-        assert_eq!(
-            resource.validate(),
-            Err(ArnError::InvalidResource("id".to_string()))
-        );
-        let resource = Resource::Id("s/3".to_string());
-        assert_eq!(
-            resource.validate(),
-            Err(ArnError::InvalidResource("id".to_string()))
-        );
-        let resource = Resource::Id("s3*".to_string());
-        assert_eq!(
-            resource.validate(),
-            Err(ArnError::InvalidResource("id".to_string()))
-        );
-    }
-
-    #[test]
-    fn test_valid_path_resource() {
-        let resource = Resource::Path("user/org/simon".to_string());
-        assert_eq!(resource.validate(), Ok(()));
-
-        let resource = Resource::Path("user/org/*".to_string());
-        assert_eq!(resource.validate(), Ok(()));
-    }
-
-    #[test]
-    fn test_invalid_path_resource() {
-        let resource = Resource::Path("user:simon".to_string());
-        assert_eq!(
-            resource.validate(),
-            Err(ArnError::InvalidResource("path".to_string()))
-        );
-    }
-
-    #[test]
-    fn test_valid_typed_id_resource() {
-        let resource = Resource::TypedId {
-            the_type: "user".to_string(),
-            id: "simon".to_string(),
-        };
-        assert_eq!(resource.validate(), Ok(()));
-
-        let resource = Resource::TypedId {
-            the_type: "user".to_string(),
-            id: "*".to_string(),
-        };
-        assert_eq!(resource.validate(), Ok(()));
-    }
-
-    #[test]
-    fn test_invalid_typed_id_resource() {
-        let resource = Resource::TypedId {
-            the_type: "us:er".to_string(),
-            id: "simon".to_string(),
-        };
-        assert_eq!(
-            resource.validate(),
-            Err(ArnError::InvalidResource("the_type".to_string()))
-        );
-        let resource = Resource::TypedId {
-            the_type: "us/er".to_string(),
-            id: "simon".to_string(),
-        };
-        assert_eq!(
-            resource.validate(),
-            Err(ArnError::InvalidResource("the_type".to_string()))
-        );
-        let resource = Resource::TypedId {
-            the_type: "us*er".to_string(),
-            id: "simon".to_string(),
-        };
-        assert_eq!(
-            resource.validate(),
-            Err(ArnError::InvalidResource("the_type".to_string()))
-        );
-
-        let resource = Resource::TypedId {
-            the_type: "user".to_string(),
-            id: "sim:on".to_string(),
-        };
-        assert_eq!(
-            resource.validate(),
-            Err(ArnError::InvalidResource("id".to_string()))
-        );
-        let resource = Resource::TypedId {
-            the_type: "user".to_string(),
-            id: "sim/on".to_string(),
-        };
-        assert_eq!(
-            resource.validate(),
-            Err(ArnError::InvalidResource("id".to_string()))
-        );
-    }
-
-    #[test]
-    fn test_valid_qtyped_id_resource() {
-        let resource = Resource::QTypedId {
-            the_type: "user".to_string(),
-            id: "simon".to_string(),
-            qualifier: "v2".to_string(),
-        };
-        assert_eq!(resource.validate(), Ok(()));
-
-        let resource = Resource::QTypedId {
-            the_type: "user".to_string(),
-            id: "*".to_string(),
-            qualifier: "v2".to_string(),
-        };
-        assert_eq!(resource.validate(), Ok(()));
-    }
-
-    #[test]
-    fn test_invalid_qtyped_id_resource() {
-        let resource = Resource::QTypedId {
-            the_type: "us:er".to_string(),
-            id: "simon".to_string(),
-            qualifier: "v2".to_string(),
-        };
-        assert_eq!(
-            resource.validate(),
-            Err(ArnError::InvalidResource("the_type".to_string()))
-        );
-        let resource = Resource::QTypedId {
-            the_type: "us/er".to_string(),
-            id: "simon".to_string(),
-            qualifier: "v2".to_string(),
-        };
-        assert_eq!(
-            resource.validate(),
-            Err(ArnError::InvalidResource("the_type".to_string()))
-        );
-        let resource = Resource::QTypedId {
-            the_type: "us*er".to_string(),
-            id: "simon".to_string(),
-            qualifier: "v2".to_string(),
-        };
-        assert_eq!(
-            resource.validate(),
-            Err(ArnError::InvalidResource("the_type".to_string()))
-        );
-
-        let resource = Resource::QTypedId {
-            the_type: "user".to_string(),
-            id: "sim:on".to_string(),
-            qualifier: "v2".to_string(),
-        };
-        assert_eq!(
-            resource.validate(),
-            Err(ArnError::InvalidResource("id".to_string()))
-        );
-        let resource = Resource::QTypedId {
-            the_type: "user".to_string(),
-            id: "sim/on".to_string(),
-            qualifier: "v2".to_string(),
-        };
-        assert_eq!(
-            resource.validate(),
-            Err(ArnError::InvalidResource("id".to_string()))
-        );
-
-        let resource = Resource::QTypedId {
-            the_type: "user".to_string(),
-            id: "simon".to_string(),
-            qualifier: "v:2".to_string(),
-        };
-        assert_eq!(
-            resource.validate(),
-            Err(ArnError::InvalidResource("qualifier".to_string()))
-        );
-        let resource = Resource::QTypedId {
-            the_type: "user".to_string(),
-            id: "simon".to_string(),
-            qualifier: "v/2".to_string(),
-        };
-        assert_eq!(
-            resource.validate(),
-            Err(ArnError::InvalidResource("qualifier".to_string()))
-        );
-        let resource = Resource::QTypedId {
-            the_type: "user".to_string(),
-            id: "simon".to_string(),
-            qualifier: "v*2".to_string(),
-        };
-        assert_eq!(
-            resource.validate(),
-            Err(ArnError::InvalidResource("qualifier".to_string()))
-        );
-    }
-}
+#[doc(hidden)]
+mod error;
+pub use crate::error::ArnError;

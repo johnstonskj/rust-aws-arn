@@ -5,90 +5,92 @@ These resource definitions ae take from the AWS
 [documentation](https://docs.aws.amazon.com/IAM/latest/UserGuide/list_awslambda.html#awslambda-resources-for-iam-policies).
 */
 
-use crate::builder::{ArnBuilder, ResourceBuilder};
-use crate::{ArnError, ARN};
+use crate::builder::ArnBuilder;
+use crate::known::Service::Lambda;
+use crate::{Identifier, ResourceIdentifier, ARN};
 
 // ------------------------------------------------------------------------------------------------
 // Public Functions
 // ------------------------------------------------------------------------------------------------
 
 ///
-/// The service name portion of the ARN.
-///
-pub const SERVICE_NAME: &str = "lambda";
-
-///
 /// `arn:${Partition}:lambda:${Region}:${Account}:function:${FunctionName}`
 ///
 pub fn function(
-    partition: &str,
-    region: &str,
-    account: &str,
-    function_name: &str,
-) -> Result<ARN, ArnError> {
-    ArnBuilder::new(SERVICE_NAME)
-        .in_partition(partition)
-        .in_region(region)
+    partition: Identifier,
+    region: Identifier,
+    account: Identifier,
+    function_name: Identifier,
+) -> ARN {
+    ArnBuilder::service_id(Lambda.into())
+        .in_partition_id(partition)
+        .in_region_id(region)
         .owned_by(account)
-        .is(ResourceBuilder::new(function_name)
-            .is_a("function")
-            .build()?)
-        .build()
+        .is(ResourceIdentifier::from_qualified_id(&[
+            Identifier::new_unchecked("function"),
+            function_name,
+        ]))
+        .into()
 }
 
 ///
 /// `arn:${Partition}:lambda:${Region}:${Account}:layer:${LayerName}`
 ///
 pub fn layer(
-    partition: &str,
-    region: &str,
-    account: &str,
-    layer_name: &str,
-) -> Result<ARN, ArnError> {
-    ArnBuilder::new(SERVICE_NAME)
-        .in_partition(partition)
-        .in_region(region)
+    partition: Identifier,
+    region: Identifier,
+    account: Identifier,
+    layer_name: Identifier,
+) -> ARN {
+    ArnBuilder::service_id(Lambda.into())
+        .in_partition_id(partition)
+        .in_region_id(region)
         .owned_by(account)
-        .is(ResourceBuilder::new(layer_name).is_a("layer").build()?)
-        .build()
+        .is(ResourceIdentifier::from_qualified_id(&[
+            Identifier::new_unchecked("layer"),
+            layer_name,
+        ]))
+        .into()
 }
 
 ///
 /// `arn:${Partition}:lambda:${Region}:${Account}:layer:${LayerName}:${LayerVersion}`
 ///
 pub fn layer_version(
-    partition: &str,
-    region: &str,
-    account: &str,
-    layer_name: &str,
+    partition: Identifier,
+    region: Identifier,
+    account: Identifier,
+    layer_name: Identifier,
     layer_version: i32,
-) -> Result<ARN, ArnError> {
-    ArnBuilder::new(SERVICE_NAME)
-        .in_partition(partition)
-        .in_region(region)
+) -> ARN {
+    ArnBuilder::service_id(Lambda.into())
+        .in_partition_id(partition)
+        .in_region_id(region)
         .owned_by(account)
-        .is(ResourceBuilder::new(layer_name)
-            .is_a("layer")
-            .with_version(layer_version)
-            .build()?)
-        .build()
+        .is(ResourceIdentifier::from_qualified_id(&[
+            Identifier::new_unchecked("layer"),
+            layer_name,
+            Identifier::new_unchecked(&layer_version.to_string()),
+        ]))
+        .into()
 }
 
 ///
 /// `arn:${Partition}:lambda:${Region}:${Account}:event-source-mapping:${UUID}`
 ///
 pub fn event_source_mapping(
-    partition: &str,
-    region: &str,
-    account: &str,
-    mapping_uuid: &str,
-) -> Result<ARN, ArnError> {
-    ArnBuilder::new(SERVICE_NAME)
-        .in_partition(partition)
-        .in_region(region)
+    partition: Identifier,
+    region: Identifier,
+    account: Identifier,
+    mapping_uuid: Identifier,
+) -> ARN {
+    ArnBuilder::service_id(Lambda.into())
+        .in_partition_id(partition)
+        .in_region_id(region)
         .owned_by(account)
-        .is(ResourceBuilder::new(mapping_uuid)
-            .is_an("event-source-mapping")
-            .build()?)
-        .build()
+        .is(ResourceIdentifier::from_qualified_id(&[
+            Identifier::new_unchecked("event-source-mapping"),
+            mapping_uuid,
+        ]))
+        .into()
 }

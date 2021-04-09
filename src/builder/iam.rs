@@ -7,68 +7,76 @@ With the exception  of the root account ARN described
 [here](https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_identifiers.html#identifiers-arns).
 [*/
 
-use crate::builder::{ArnBuilder, ResourceBuilder};
-use crate::{ArnError, ARN};
+use crate::builder::ArnBuilder;
+use crate::known::Service::IdentityAccessManagement;
+use crate::{Identifier, ResourceIdentifier, ARN};
 
 // ------------------------------------------------------------------------------------------------
 // Public Functions
 // ------------------------------------------------------------------------------------------------
 
 ///
-/// The service name portion of the ARN.
-///
-pub const SERVICE_NAME: &str = "iam";
-
-///
 /// `arn:aws:iam::123456789012:root`
 ///
-pub fn root(account: &str) -> Result<ARN, ArnError> {
-    ArnBuilder::new(SERVICE_NAME)
+pub fn root(account: Identifier) -> ARN {
+    ArnBuilder::service_id(IdentityAccessManagement.into())
         .owned_by(account)
-        .is(ResourceBuilder::new("root").build()?)
-        .build()
+        .is(ResourceIdentifier::new_unchecked("root"))
+        .into()
 }
 
 ///
 /// `arn:${Partition}:iam::${Account}:user/${UserNameWithPath}`
 ///
-pub fn user(partition: &str, account: &str, user_name: &str) -> Result<ARN, ArnError> {
-    ArnBuilder::new(SERVICE_NAME)
-        .in_partition(partition)
+pub fn user(partition: Identifier, account: Identifier, user_name: Identifier) -> ARN {
+    ArnBuilder::service_id(IdentityAccessManagement.into())
+        .in_partition_id(partition)
         .owned_by(account)
-        .is(ResourceBuilder::new(user_name).is_an("user").build()?)
-        .build()
+        .is(ResourceIdentifier::from_id_path(&[
+            Identifier::new_unchecked("user"),
+            user_name,
+        ]))
+        .into()
 }
 
 ///
 /// `arn:${Partition}:iam::${Account}:role/${RoleNameWithPath}`
 ///
-pub fn role(partition: &str, account: &str, role_name: &str) -> Result<ARN, ArnError> {
-    ArnBuilder::new(SERVICE_NAME)
-        .in_partition(partition)
+pub fn role(partition: Identifier, account: Identifier, role_name: Identifier) -> ARN {
+    ArnBuilder::service_id(IdentityAccessManagement.into())
+        .in_partition_id(partition)
         .owned_by(account)
-        .is(ResourceBuilder::new(role_name).is_an("role").build()?)
-        .build()
+        .is(ResourceIdentifier::from_id_path(&[
+            Identifier::new_unchecked("role"),
+            role_name,
+        ]))
+        .into()
 }
 
 ///
 /// `arn:${Partition}:iam::${Account}:group/${GroupNameWithPath}`
 ///
-pub fn group(partition: &str, account: &str, group_name: &str) -> Result<ARN, ArnError> {
-    ArnBuilder::new(SERVICE_NAME)
-        .in_partition(partition)
+pub fn group(partition: Identifier, account: Identifier, group_name: Identifier) -> ARN {
+    ArnBuilder::service_id(IdentityAccessManagement.into())
+        .in_partition_id(partition)
         .owned_by(account)
-        .is(ResourceBuilder::new(group_name).is_an("group").build()?)
-        .build()
+        .is(ResourceIdentifier::from_id_path(&[
+            Identifier::new_unchecked("group"),
+            group_name,
+        ]))
+        .into()
 }
 
 ///
 /// `arn:${Partition}:iam::${Account}:policy/${PolicyNameWithPath}`
 ///
-pub fn policy(partition: &str, account: &str, policy_name: &str) -> Result<ARN, ArnError> {
-    ArnBuilder::new(SERVICE_NAME)
-        .in_partition(partition)
+pub fn policy(partition: Identifier, account: Identifier, policy_name: Identifier) -> ARN {
+    ArnBuilder::service_id(IdentityAccessManagement.into())
+        .in_partition_id(partition)
         .owned_by(account)
-        .is(ResourceBuilder::new(policy_name).is_an("policy").build()?)
-        .build()
+        .is(ResourceIdentifier::from_id_path(&[
+            Identifier::new_unchecked("policy"),
+            policy_name,
+        ]))
+        .into()
 }

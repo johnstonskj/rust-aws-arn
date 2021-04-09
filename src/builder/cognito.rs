@@ -5,33 +5,30 @@ These resource definitions ae take from the AWS
 [documentation](https://docs.aws.amazon.com/IAM/latest/UserGuide/list_amazoncognitoidentity.html#amazoncognitoidentity-resources-for-iam-policies).
 */
 
-use crate::builder::{ArnBuilder, ResourceBuilder};
-use crate::{ArnError, ARN};
+use crate::builder::ArnBuilder;
+use crate::known::Service::CognitoIdentity;
+use crate::{Identifier, ResourceIdentifier, ARN};
 
 // ------------------------------------------------------------------------------------------------
 // Public Functions
 // ------------------------------------------------------------------------------------------------
 
 ///
-/// The service name portion of the ARN.
-///
-pub const SERVICE_NAME: &str = "cognito-identity";
-
-///
 /// `arn:${Partition}:cognito-identity:${Region}:${Account}:identitypool/${IdentityPoolId}`
 ///
 pub fn identity_pool(
-    partition: &str,
-    region: &str,
-    account: &str,
-    identity_pool_id: &str,
-) -> Result<ARN, ArnError> {
-    ArnBuilder::new(SERVICE_NAME)
-        .in_partition(partition)
-        .in_region(region)
+    partition: Identifier,
+    region: Identifier,
+    account: Identifier,
+    identity_pool_id: Identifier,
+) -> ARN {
+    ArnBuilder::service_id(CognitoIdentity.into())
+        .in_partition_id(partition)
+        .in_region_id(region)
         .owned_by(account)
-        .is(ResourceBuilder::new(identity_pool_id)
-            .is_an("identitypool")
-            .build()?)
-        .build()
+        .is(ResourceIdentifier::from_id_path(&[
+            Identifier::new_unchecked("identitypool"),
+            identity_pool_id,
+        ]))
+        .into()
 }

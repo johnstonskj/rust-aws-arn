@@ -52,6 +52,19 @@ This crate has attempted to be as lean as possible, with a really minimal set of
 
 ## Changes
 
+**Version 0.2.0**
+
+* Relaxed validation of identifiers and resource identifiers.
+* Removed `Resource` type which added a lot of the validation confusion.
+* Using new `Identifier` and `ResourceIdentifier` types to construct correct `ARN` values without the need for any
+  external validation methods.
+* Replaced `ResourceBuilder` with one for `ResourceIdentifier` values.
+* Removed `ext_validation` feature
+* Added `consts` feature
+* Placed `builder` module into new `builders` feature.
+* Added a lot more tests including an `examples.txt` file that is just a long list to be parsed.
+* Fixed Github [issue-2](https://github.com/johnstonskj/rust-aws-arn/issues/2).
+  
 **Version 0.1.1**
 
 * Documentation additions and fixes, in both README and Rustdoc.

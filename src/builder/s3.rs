@@ -5,50 +5,50 @@ These resource definitions ae take from the AWS
 [documentation]( https://docs.aws.amazon.com/IAM/latest/UserGuide/list_amazons3.html#amazons3-resources-for-iam-policies)
 */
 
-use crate::builder::{ArnBuilder, ResourceBuilder};
-use crate::{ArnError, Resource, ARN};
+use crate::builder::ArnBuilder;
+use crate::known::Partition;
+use crate::known::Service::S3;
+use crate::{Identifier, ResourceIdentifier, ARN};
 
 // ------------------------------------------------------------------------------------------------
 // Public Functions
 // ------------------------------------------------------------------------------------------------
 
 ///
-/// The service name portion of the ARN.
-///
-pub const SERVICE_NAME: &str = "s3";
-
-///
 /// `arn:${Partition}:s3:::${BucketName}`
 ///
-pub fn bucket_in(partition: &str, bucket_name: &str) -> Result<ARN, ArnError> {
-    ArnBuilder::new(SERVICE_NAME)
-        .in_partition(partition)
-        .is(ResourceBuilder::new(bucket_name).build()?)
-        .build()
+pub fn bucket_in(partition: Identifier, bucket_name: Identifier) -> ARN {
+    ArnBuilder::service_id(Partition::default().into())
+        .in_partition_id(partition)
+        .is(bucket_name.into())
+        .into()
 }
 
 ///
 /// `arn:aws:s3:::${BucketName}`
 ///
-pub fn bucket(bucket_name: &str) -> Result<ARN, ArnError> {
-    bucket_in("aws", bucket_name)
+pub fn bucket(bucket_name: Identifier) -> ARN {
+    bucket_in(Partition::default().into(), bucket_name)
 }
 
 ///
 /// `arn:${Partition}:s3:::${BucketName}/${ObjectName}`
 ///
-pub fn object_in(partition: &str, bucket_name: &str, object_name: &str) -> Result<ARN, ArnError> {
-    ArnBuilder::new(SERVICE_NAME)
-        .in_partition(partition)
-        .is(ResourceBuilder::new(&format!("{}/{}", bucket_name, object_name)).build()?)
-        .build()
+pub fn object_in(partition: Identifier, bucket_name: Identifier, object_name: Identifier) -> ARN {
+    ArnBuilder::service_id(S3.into())
+        .in_partition_id(partition)
+        .is(ResourceIdentifier::from_id_path(&[
+            bucket_name,
+            object_name,
+        ]))
+        .into()
 }
 
 ///
 /// `arn:aws:s3:::${BucketName}/${ObjectName}`
 ///
-pub fn object(bucket_name: &str, object_name: &str) -> Result<ARN, ArnError> {
-    object_in("aws", bucket_name, object_name)
+pub fn object(bucket_name: Identifier, object_name: Identifier) -> ARN {
+    object_in(Partition::default().into(), bucket_name, object_name)
 }
 
 ///
@@ -56,35 +56,36 @@ pub fn object(bucket_name: &str, object_name: &str) -> Result<ARN, ArnError> {
 ///
 /// This function will panic if `bucket` is not an ARN for an S3 bucket.
 ///
-pub fn object_from(bucket: &ARN, object_name: &str) -> Result<ARN, ArnError> {
-    if bucket.service != SERVICE_NAME.to_string() {
+pub fn object_from(bucket: &ARN, object_name: Identifier) -> ARN {
+    if bucket.service != S3.into() {
         panic!("You can't make an S3 object from a {} ARN.", bucket.service);
     }
-    if let Resource::Id(id) = &bucket.resource {
-        Ok(ARN {
-            resource: ResourceBuilder::new(&format!("{}/{}", id, object_name)).build()?,
-            ..bucket.clone()
-        })
-    } else {
-        Err(ArnError::InvalidResource("id".to_string()))
+    ARN {
+        resource: ResourceIdentifier::from_path(&[bucket.resource.clone(), object_name.into()]),
+        ..bucket.clone()
     }
 }
 
 ///
 /// `arn:${Partition}:s3:${Region}:${Account}:job/${JobId}`
 ///
-pub fn job_in(partition: &str, region: &str, account: &str, job_id: &str) -> Result<ARN, ArnError> {
-    ArnBuilder::new(SERVICE_NAME)
-        .in_partition(partition)
-        .in_region(region)
+pub fn job_in(
+    partition: Identifier,
+    region: Identifier,
+    account: Identifier,
+    job_id: Identifier,
+) -> ARN {
+    ArnBuilder::service_id(S3.into())
+        .in_partition_id(partition)
+        .in_region_id(region)
         .owned_by(account)
-        .is(ResourceBuilder::new(job_id).build()?)
-        .build()
+        .is(job_id.into())
+        .into()
 }
 
 ///
 /// `arn:aws:s3:${Region}:${Account}:job/${JobId}`
 ///
-pub fn job(region: &str, account: &str, job_id: &str) -> Result<ARN, ArnError> {
-    job_in("aws", region, account, job_id)
+pub fn job(region: Identifier, account: Identifier, job_id: Identifier) -> ARN {
+    job_in(Partition::default().into(), region, account, job_id)
 }

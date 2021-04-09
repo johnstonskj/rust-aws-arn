@@ -1,6 +1,6 @@
 [package]
 name = "aws-arn"
-version = "0.1.1"
+version = "0.2.0"
 authors = ["Simon Johnston <johnstonskj@gmail.com>"]
 edition = "2018"
 description = "Provides types, builders, and other helpers to manipulate AWS Amazon Resource Name (ARN) strings"
@@ -12,14 +12,22 @@ publish = true
 
 
 [features]
-default = ["serde_support"]
-ext_validation = ["serde_support", "toml"]
+default = ["builders", "known", "serde_support"]
+builders = ["known", "lazy_static"]
+known = []
 serde_support = ["serde"]
 
 [dependencies]
-lazy_static = "1.4.0"
-regex = "1.3.7"
 
 # Optional dependencies
+lazy_static = { optional = true, version = "1.4.0" }
 serde = { optional = true, version = "1.0.110", features = ["derive"] }
-toml = { optional = true, version = "0.5.6" }
+
+[dev-dependencies]
+proptest = "0.10.1"
+pretty_assertions = "0.6.1"
+
+[dev-dependencies.cargo-husky]
+version = "1"
+default-features = false # Disable features which are enabled by default
+features = ["precommit-hook", "run-cargo-fmt", "run-cargo-test" ]
