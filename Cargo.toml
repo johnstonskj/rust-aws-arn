@@ -24,7 +24,7 @@ lazy_static = { optional = true, version = "1.4.0" }
 serde = { optional = true, version = "1.0.110", features = ["derive"] }
 
 [dev-dependencies]
-proptest = "0.10.1"
+proptest = "1.0.0"
 pretty_assertions = "0.7.1"
 
 [dev-dependencies.cargo-husky]
