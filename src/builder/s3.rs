@@ -18,7 +18,7 @@ use crate::{Identifier, ResourceIdentifier, ARN};
 /// `arn:${Partition}:s3:::${BucketName}`
 ///
 pub fn bucket_in(partition: Identifier, bucket_name: Identifier) -> ARN {
-    ArnBuilder::service_id(Partition::default().into())
+    ArnBuilder::service_id(S3.into())
         .in_partition_id(partition)
         .is(bucket_name.into())
         .into()
