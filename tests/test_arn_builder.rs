@@ -1,7 +1,7 @@
 use aws_arn::builder::ArnBuilder;
 use aws_arn::known::Region::UsEast2;
 use aws_arn::known::Service::{Lambda, S3};
-use aws_arn::{Identifier, ResourceIdentifier, ARN};
+use aws_arn::{AccountIdentifier, Identifier, ResourceIdentifier, ARN};
 use std::str::FromStr;
 
 #[test]
@@ -21,7 +21,7 @@ fn test_lambda_layer() {
             Identifier::from_str(&3.to_string()).unwrap(),
         ]))
         .in_region_id(UsEast2.into())
-        .owned_by(Identifier::from_str("123456789012").unwrap())
+        .owned_by(AccountIdentifier::from_str("123456789012").unwrap())
         .into();
     assert_eq!(
         arn.to_string(),

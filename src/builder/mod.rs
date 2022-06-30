@@ -27,7 +27,7 @@
 *
 * ```rust
 * use aws_arn::builder::{ArnBuilder, ResourceBuilder};
-* use aws_arn::{Identifier, ResourceIdentifier, ARN};
+* use aws_arn::{AccountIdentifier, Identifier, ResourceIdentifier, ARN};
 * use aws_arn::known::{Region, Service};
 * use std::str::FromStr;
 *
@@ -39,7 +39,7 @@
 *             .build_qualified_id(),
 *     )
 *     .in_region_id(Region::UsEast2.into())
-*     .owned_by(Identifier::from_str("123456789012").unwrap())
+*     .owned_by(AccountIdentifier::from_str("123456789012").unwrap())
 *     .into();
 * println!("ARN: '{}'", arn);
 * ```

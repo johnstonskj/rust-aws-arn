@@ -19,6 +19,10 @@ use std::fmt::{Debug, Display, Formatter, Result};
 ///
 #[derive(Debug, PartialEq)]
 pub enum ArnError {
+    /// String length must be greater than 8 corresponding to `"arn:::::"`.
+    TooShort,
+    /// String length must be under 2048 characters..
+    TooLong,
     /// Need at least 6 components.
     TooFewComponents,
     /// Invalid `Identifier` string value.
@@ -42,7 +46,7 @@ pub enum ArnError {
     /// Missing the account id component.
     MissingAccountId,
     /// The partition account id provided is not valid.
-    InvalidAccountId,
+    InvalidAccountId(String),
     /// The particular resource type does not allow account wildcards.
     AccountIdWildcardNotAllowed,
     /// Missing the resource component.

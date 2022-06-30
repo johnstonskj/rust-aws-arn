@@ -27,9 +27,9 @@ arn:aws:iam::123456789012:policy/*
 arn:aws-us-gov:iam::123456789012:David
 arn:aws-us-gov:ec2:us-gov-west-1:001234567890:instance/*
 arn:aws-us-gov:s3:::my_corporate_bucket/*
-arn:aws-us-gov:apigateway:us-gov-west-1::/restapis/a123456789012bc3de45678901f23a45/*
-arn:aws-us-gov:apigateway:us-gov-west-1::a123456789012bc3de45678901f23a45:/test/mydemoresource/*
-arn:aws-us-gov:apigateway:*:a123456789012bc3de45678901f23a45:/*/petstorewalkthrough/pets
+#arn:aws-us-gov:apigateway:us-gov-west-1::/restapis/a123456789012bc3de45678901f23a45/*
+#arn:aws-us-gov:apigateway:us-gov-west-1::a123456789012bc3de45678901f23a45:/test/mydemoresource/*
+#arn:aws-us-gov:apigateway:*:a123456789012bc3de45678901f23a45:/*/petstorewalkthrough/pets
 arn:aws-us-gov:execute-api:us-gov-west-1:123456789012:qsxrty/test/GET/mydemoresource/*
 arn:aws-us-gov:appconfig:us-gov-west-1:123412341234:application/asdf123
 arn:aws-us-gov:athena:us-gov-west-1:123456789012:workgroup/test
@@ -42,18 +42,18 @@ arn:aws-us-gov:artifact:::agreement/AWS Business Associate Addendum
 arn:aws-us-gov:artifact::123456789012:customer-agreement/*
 arn:aws-us-gov:artifact:::report-package/Certifications and Attestations/SOC/*
 arn:aws-us-gov:artifact:::report-package/Alignment Documents/Laws and Regulations/Form W-9
-arn:aws-us-gov:iam::*:role/service-role/AWSArtifactAccountSync
-arn:aws-us-gov:iam::aws:policy/service-role/AWSArtifactAccountSync
+#arn:aws-us-gov:iam::*:role/service-role/AWSArtifactAccountSync
+#arn:aws-us-gov:iam::aws:policy/service-role/AWSArtifactAccountSync
 arn:aws-us-gov:rds:us-gov-west-1:123456789012:cluster:my-aurora-cluster-1
 arn:aws-us-gov:autoscaling:us-gov-west-1:123456789012:scalingPolicy:c7a27f55-d35e-4153-b044-8ca9155fc467:autoScalingGroupName/my-test-asg1:policyName/my-scaleout-policy
 arn:aws-us-gov:batch:us-gov-west-1:123456789012:job-queue/MyFirstJobQueue
-arn:aws-us-gov:backup:region:account-id:backup-plan:*
-arn:aws-us-gov:backup:region:account-id:backup-vault:*
-arn::aws-us-gov:backup:region:account-id:recovery-point:*
+arn:aws-us-gov:backup:region:123456789012:backup-plan:*
+arn:aws-us-gov:backup:region:123456789012:backup-vault:*
+arn:aws-us-gov:backup:region:123456789012:recovery-point:*
 arn:aws-us-gov:ec2:region::snapshot/*
-arn:aws-us-gov:rds:region:account-id:snapshot:awsbackup:*
-arn:aws-us-gov:rds:region:account-id:cluster-snapshot:awsbackup:*
-arn:aws-us-gov:dynamodb:region:account-id::table/*/backup/*
+arn:aws-us-gov:rds:region:*:snapshot:awsbackup:*
+arn:aws-us-gov:rds:region:*:cluster-snapshot:awsbackup:*
+arn:aws-us-gov:dynamodb:region:*::table/*/backup/*
 arn:aws-us-gov:acm:us-gov-west-1:123456789012:certificate/12345678-1234-1234-1234-123456789012
 arn:aws-us-gov:acm-pca:us-gov-west-1:123456789012:certificate-authority/12345678-1234-1234-1234-123456789012
 arn:aws-us-gov:acm-pca:us-gov-west-1:123456789012:certificate-authority/12345678-1234-1234-1234-123456789012/certificate/01230123012301230123012301230123
@@ -105,7 +105,7 @@ arn:aws-us-gov:s3:::my_corporate_bucket/Development/*
 arn:aws-us-gov:states:us-gov-west-1:123456789012:activity:HelloActivity
 arn:aws-us-gov:states:us-gov-west-1:123456789012:activity:stateMachine:HelloStateMachine
 arn:aws-us-gov:states:us-gov-west-1:123456789012:execution:HelloStateMachine:HelloStateMachineExecution
-arn:aws-us-gov:iam:us-gov-west-1:aws:policy/AdministratorAccess
+#arn:aws-us-gov:iam:us-gov-west-1:aws:policy/AdministratorAccess
 arn:aws-us-gov:transfer:us-gov-east-1:123456789012:server/s-01234567890abcdef
 arn:aws-us-gov:transfer:us-gov-west-1:123456789012:server/s-01234567890abcdef
 arn:aws-us-gov:transfer:us-gov-east-1:123456789012:user/s-01234567890abcdef/user1
@@ -120,7 +120,7 @@ arn:aws-us-gov:wafv2:us-east-1:123456789012:global/rulegroup/test-rules/c05lb698
 arn:aws-us-gov:states:us-gov-west-1:123456789012:activity:HelloActivity
 arn:aws-us-gov:states:us-gov-west-1:123456789012:activity:stateMachine:HelloStateMachine
 arn:aws-us-gov:states:us-gov-west-1:123456789012:execution:HelloStateMachine:HelloStateMachineExecution
-arn:aws-us-gov:iam:us-gov-west-1:aws:policy/AdministratorAccess
+#arn:aws-us-gov:iam:us-gov-west-1:aws:policy/AdministratorAccess
 arn:aws-us-gov:sagemaker:us-gov-west-1:123456789012:notebook-instance/my-notebookInstance-1
 arn:aws-us-gov:sagemaker:us-gov-west-1:123456789012:notebook-instance-lifecycle-config/my-notebookInstanceLifecycleConfig-1
 arn:aws-us-gov:sagemaker:us-gov-west-1:123456789012:training-job/my-trainingJob-1

@@ -227,7 +227,11 @@ const PART_SEPARATOR: char = ':';
 
 const PATH_SEPARATOR: char = '/';
 
-const RESOURCE_ID_ANY: &str = "*";
+const STRING_WILD_ANY: &str = "*";
+
+const CHAR_WILD_ONE: char = '?';
+
+const CHAR_WILD_ANY: char = '*';
 
 // ------------------------------------------------------------------------------------------------
 
@@ -280,8 +284,31 @@ impl Identifier {
     /// Returns `true` if the provided string is a valid `Identifier` value, else `false`.
     pub fn is_valid(s: &str) -> bool {
         !s.is_empty()
-            && s.chars()
-                .all(|c| c > '\u{1F}' && c < '\u{7F}' && c != ' ' && c != '/' && c != ':')
+            && s.chars().all(|c| {
+                c > '\u{1F}'
+                    && c < '\u{7F}'
+                    && c != ' '
+                    && c != PATH_SEPARATOR
+                    && c != PART_SEPARATOR
+            })
+    }
+
+    /// Construct an identifier that represents *any*.
+    pub fn any() -> Self {
+        Self(STRING_WILD_ANY.to_string())
+    }
+
+    /// Return `true` if this is simply the *any* wildcard, else `false`.
+    pub fn is_any(&self) -> bool {
+        self.0 == STRING_WILD_ANY
+    }
+
+    /// Returns `true` if this identifier contains any wildcard characeters,
+    /// else `false`.
+    pub fn has_wildcards(&self) -> bool {
+        self.0
+            .chars()
+            .any(|c| c == CHAR_WILD_ONE || c == CHAR_WILD_ANY)
     }
 }
 
@@ -306,7 +333,7 @@ impl FromStr for AccountIdentifier {
         if Self::is_valid(s) {
             Ok(Self(s.to_string()))
         } else {
-            Err(ArnError::InvalidIdentifier(s.to_string()))
+            Err(ArnError::InvalidAccountId(s.to_string()))
         }
     }
 }
@@ -341,7 +368,28 @@ impl AccountIdentifier {
 
     /// Returns `true` if the provided string is a valid `Identifier` value, else `false`.
     pub fn is_valid(s: &str) -> bool {
-        s.len() == 12 && s.chars().all(|c| c.is_ascii_digit())
+        (s.len() == 12 && s.chars().all(|c| c.is_ascii_digit()))
+            || (s.len() <= 12
+                && s.chars()
+                    .all(|c| c.is_ascii_digit() || c == CHAR_WILD_ONE || c == CHAR_WILD_ANY))
+    }
+
+    /// Construct an account identifier that represents *any*.
+    pub fn any() -> Self {
+        Self(STRING_WILD_ANY.to_string())
+    }
+
+    /// Return `true` if this is simply the *any* wildcard, else `false`.
+    pub fn is_any(&self) -> bool {
+        self.0 == STRING_WILD_ANY
+    }
+
+    /// Returns `true` if this identifier contains any wildcard characeters,
+    /// else `false`.
+    pub fn has_wildcards(&self) -> bool {
+        self.0
+            .chars()
+            .any(|c| c == CHAR_WILD_ONE || c == CHAR_WILD_ANY)
     }
 }
 
@@ -392,9 +440,34 @@ impl Deref for ResourceIdentifier {
 }
 
 impl ResourceIdentifier {
-    /// Construct a resource identifier that contains only the wildcard character `'*'`.
+    /// Construct a new `ResourceIdentifier` from the provided string **without** checking it's
+    /// validity. This can be a useful method to improve performance for statically, or well-known,
+    /// values; however, in general `FromStr::from_str` should be used.
+    pub fn new_unchecked(s: &str) -> Self {
+        Self(s.to_string())
+    }
+
+    /// Returns `true` if the provided string is a valid `ResourceIdentifier` value, else `false`.
+    pub fn is_valid(s: &str) -> bool {
+        !s.is_empty() && s.chars().all(|c| c > '\u{1F}' && c < '\u{7F}')
+    }
+
+    /// Construct a resource identifier that represents *any*.
     pub fn any() -> Self {
-        Self(RESOURCE_ID_ANY.to_string())
+        Self(STRING_WILD_ANY.to_string())
+    }
+
+    /// Return `true` if this is simply the *any* wildcard, else `false`.
+    pub fn is_any(&self) -> bool {
+        self.0 == STRING_WILD_ANY
+    }
+
+    /// Returns `true` if this identifier contains any wildcard characeters,
+    /// else `false`.
+    pub fn has_wildcards(&self) -> bool {
+        self.0
+            .chars()
+            .any(|c| c == CHAR_WILD_ONE || c == CHAR_WILD_ANY)
     }
 
     /// Construct a resource identifier, as a path, using the `Identifier` path components.
@@ -439,23 +512,6 @@ impl ResourceIdentifier {
                 .collect::<Vec<String>>()
                 .join(&PART_SEPARATOR.to_string()),
         )
-    }
-
-    /// Construct a new `ResourceIdentifier` from the provided string **without** checking it's
-    /// validity. This can be a useful method to improve performance for statically, or well-known,
-    /// values; however, in general `FromStr::from_str` should be used.
-    pub fn new_unchecked(s: &str) -> Self {
-        Self(s.to_string())
-    }
-
-    /// Returns `true` if the provided string is a valid `ResourceIdentifier` value, else `false`.
-    pub fn is_valid(s: &str) -> bool {
-        !s.is_empty() && s.chars().all(|c| c > '\u{1F}' && c < '\u{7F}')
-    }
-
-    /// Return `true` if this is a wildcard resource identifier, else `false`.
-    pub fn is_any(&self) -> bool {
-        self.0 == RESOURCE_ID_ANY
     }
 
     /// Return `true` if this identifier contains path separator characters, else `false`.
