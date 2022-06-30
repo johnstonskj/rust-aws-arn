@@ -48,7 +48,7 @@
 */
 
 use crate::known::{Partition, Region, Service};
-use crate::{Identifier, ResourceIdentifier, ARN};
+use crate::{AccountIdentifier, Identifier, ResourceIdentifier, ARN};
 
 // ------------------------------------------------------------------------------------------------
 // Public Types
@@ -158,24 +158,24 @@ impl ArnBuilder {
     }
 
     /// Set a specific `account` for this ARN.
-    pub fn in_account(&mut self, account: Identifier) -> &mut Self {
+    pub fn in_account(&mut self, account: AccountIdentifier) -> &mut Self {
         self.arn.account_id = Some(account);
         self
     }
 
     /// Set a specific `account` for this ARN.
-    pub fn and_account(&mut self, account: Identifier) -> &mut Self {
+    pub fn and_account(&mut self, account: AccountIdentifier) -> &mut Self {
         self.in_account(account)
     }
 
     /// Set a specific `account` for this ARN.
-    pub fn owned_by(&mut self, account: Identifier) -> &mut Self {
+    pub fn owned_by(&mut self, account: AccountIdentifier) -> &mut Self {
         self.in_account(account)
     }
 
     /// Set `account` to a wildcard for this ARN.
     pub fn in_any_account(&mut self) -> &mut Self {
-        self.in_account(Identifier::default())
+        self.in_account(AccountIdentifier::default())
     }
 
     /// Set a specific `resource` for this ARN.

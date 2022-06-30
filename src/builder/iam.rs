@@ -9,7 +9,7 @@ With the exception  of the root account ARN described
 
 use crate::builder::ArnBuilder;
 use crate::known::Service::IdentityAccessManagement;
-use crate::{Identifier, ResourceIdentifier, ARN};
+use crate::{AccountIdentifier, Identifier, ResourceIdentifier, ARN};
 
 // ------------------------------------------------------------------------------------------------
 // Public Functions
@@ -18,7 +18,7 @@ use crate::{Identifier, ResourceIdentifier, ARN};
 ///
 /// `arn:aws:iam::123456789012:root`
 ///
-pub fn root(account: Identifier) -> ARN {
+pub fn root(account: AccountIdentifier) -> ARN {
     ArnBuilder::service_id(IdentityAccessManagement.into())
         .owned_by(account)
         .is(ResourceIdentifier::new_unchecked("root"))
@@ -28,7 +28,7 @@ pub fn root(account: Identifier) -> ARN {
 ///
 /// `arn:${Partition}:iam::${Account}:user/${UserNameWithPath}`
 ///
-pub fn user(partition: Identifier, account: Identifier, user_name: Identifier) -> ARN {
+pub fn user(partition: Identifier, account: AccountIdentifier, user_name: Identifier) -> ARN {
     ArnBuilder::service_id(IdentityAccessManagement.into())
         .in_partition_id(partition)
         .owned_by(account)
@@ -42,7 +42,7 @@ pub fn user(partition: Identifier, account: Identifier, user_name: Identifier) -
 ///
 /// `arn:${Partition}:iam::${Account}:role/${RoleNameWithPath}`
 ///
-pub fn role(partition: Identifier, account: Identifier, role_name: Identifier) -> ARN {
+pub fn role(partition: Identifier, account: AccountIdentifier, role_name: Identifier) -> ARN {
     ArnBuilder::service_id(IdentityAccessManagement.into())
         .in_partition_id(partition)
         .owned_by(account)
@@ -56,7 +56,7 @@ pub fn role(partition: Identifier, account: Identifier, role_name: Identifier) -
 ///
 /// `arn:${Partition}:iam::${Account}:group/${GroupNameWithPath}`
 ///
-pub fn group(partition: Identifier, account: Identifier, group_name: Identifier) -> ARN {
+pub fn group(partition: Identifier, account: AccountIdentifier, group_name: Identifier) -> ARN {
     ArnBuilder::service_id(IdentityAccessManagement.into())
         .in_partition_id(partition)
         .owned_by(account)
@@ -70,7 +70,7 @@ pub fn group(partition: Identifier, account: Identifier, group_name: Identifier)
 ///
 /// `arn:${Partition}:iam::${Account}:policy/${PolicyNameWithPath}`
 ///
-pub fn policy(partition: Identifier, account: Identifier, policy_name: Identifier) -> ARN {
+pub fn policy(partition: Identifier, account: AccountIdentifier, policy_name: Identifier) -> ARN {
     ArnBuilder::service_id(IdentityAccessManagement.into())
         .in_partition_id(partition)
         .owned_by(account)

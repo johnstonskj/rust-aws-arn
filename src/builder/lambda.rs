@@ -7,7 +7,7 @@ These resource definitions ae take from the AWS
 
 use crate::builder::ArnBuilder;
 use crate::known::Service::Lambda;
-use crate::{Identifier, ResourceIdentifier, ARN};
+use crate::{AccountIdentifier, Identifier, ResourceIdentifier, ARN};
 
 // ------------------------------------------------------------------------------------------------
 // Public Functions
@@ -19,7 +19,7 @@ use crate::{Identifier, ResourceIdentifier, ARN};
 pub fn function(
     partition: Identifier,
     region: Identifier,
-    account: Identifier,
+    account: AccountIdentifier,
     function_name: Identifier,
 ) -> ARN {
     ArnBuilder::service_id(Lambda.into())
@@ -39,7 +39,7 @@ pub fn function(
 pub fn layer(
     partition: Identifier,
     region: Identifier,
-    account: Identifier,
+    account: AccountIdentifier,
     layer_name: Identifier,
 ) -> ARN {
     ArnBuilder::service_id(Lambda.into())
@@ -59,7 +59,7 @@ pub fn layer(
 pub fn layer_version(
     partition: Identifier,
     region: Identifier,
-    account: Identifier,
+    account: AccountIdentifier,
     layer_name: Identifier,
     layer_version: i32,
 ) -> ARN {
@@ -81,7 +81,7 @@ pub fn layer_version(
 pub fn event_source_mapping(
     partition: Identifier,
     region: Identifier,
-    account: Identifier,
+    account: AccountIdentifier,
     mapping_uuid: Identifier,
 ) -> ARN {
     ArnBuilder::service_id(Lambda.into())

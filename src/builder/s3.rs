@@ -8,7 +8,7 @@ These resource definitions ae take from the AWS
 use crate::builder::ArnBuilder;
 use crate::known::Partition;
 use crate::known::Service::S3;
-use crate::{Identifier, ResourceIdentifier, ARN};
+use crate::{AccountIdentifier, Identifier, ResourceIdentifier, ARN};
 
 // ------------------------------------------------------------------------------------------------
 // Public Functions
@@ -72,7 +72,7 @@ pub fn object_from(bucket: &ARN, object_name: Identifier) -> ARN {
 pub fn job_in(
     partition: Identifier,
     region: Identifier,
-    account: Identifier,
+    account: AccountIdentifier,
     job_id: Identifier,
 ) -> ARN {
     ArnBuilder::service_id(S3.into())
@@ -86,6 +86,6 @@ pub fn job_in(
 ///
 /// `arn:aws:s3:${Region}:${Account}:job/${JobId}`
 ///
-pub fn job(region: Identifier, account: Identifier, job_id: Identifier) -> ARN {
+pub fn job(region: Identifier, account: AccountIdentifier, job_id: Identifier) -> ARN {
     job_in(Partition::default().into(), region, account, job_id)
 }

@@ -7,7 +7,7 @@ These resource definitions ae take from the AWS
 
 use crate::builder::ArnBuilder;
 use crate::known::Service::CognitoIdentity;
-use crate::{Identifier, ResourceIdentifier, ARN};
+use crate::{AccountIdentifier, Identifier, ResourceIdentifier, ARN};
 
 // ------------------------------------------------------------------------------------------------
 // Public Functions
@@ -19,7 +19,7 @@ use crate::{Identifier, ResourceIdentifier, ARN};
 pub fn identity_pool(
     partition: Identifier,
     region: Identifier,
-    account: Identifier,
+    account: AccountIdentifier,
     identity_pool_id: Identifier,
 ) -> ARN {
     ArnBuilder::service_id(CognitoIdentity.into())

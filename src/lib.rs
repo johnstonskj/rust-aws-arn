@@ -124,10 +124,6 @@
     unused_results,
 )]
 
-#[cfg(feature = "known")]
-#[macro_use]
-extern crate lazy_static;
-
 #[cfg(feature = "serde_support")]
 use serde::{Deserialize, Serialize};
 
@@ -321,6 +317,12 @@ impl From<AccountIdentifier> for String {
     }
 }
 
+impl From<AccountIdentifier> for ARN {
+    fn from(account: AccountIdentifier) -> Self {
+        ARN::from_str(&format!("arn:aws:iam::{}:root", account)).unwrap()
+    }
+}
+
 impl Deref for AccountIdentifier {
     type Target = str;
 
@@ -339,7 +341,7 @@ impl AccountIdentifier {
 
     /// Returns `true` if the provided string is a valid `Identifier` value, else `false`.
     pub fn is_valid(s: &str) -> bool {
-        s.len() == 12 && s.chars().all(char::is_ascii_digit)
+        s.len() == 12 && s.chars().all(|c| c.is_ascii_digit())
     }
 }
 
@@ -503,7 +505,7 @@ impl Display for ARN {
                     .to_string(),
                 self.account_id
                     .as_ref()
-                    .unwrap_or(&Identifier::default())
+                    .unwrap_or(&AccountIdentifier::default())
                     .to_string(),
                 self.resource.to_string()
             ]
@@ -544,7 +546,7 @@ impl FromStr for ARN {
                 account_id: if parts[4].is_empty() {
                     None
                 } else {
-                    Some(Identifier::from_str(parts[4])?)
+                    Some(AccountIdentifier::from_str(parts[4])?)
                 },
                 resource: {
                     let resource_parts: Vec<&str> = parts.drain(5..).collect();
