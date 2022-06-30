@@ -115,6 +115,128 @@ This crate has attempted to be as lean as possible, with a really minimal set of
 * `ext_validation` adds extended, service specific, validation using an external configuration file.
 
 ## Changes
+# Crate aws-arn
+
+Provides the types, builders, and other helpers to manipulate AWS
+[Amazon Resource Name (ARN)](https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
+strings.
+
+![MIT License](https://img.shields.io/badge/license-mit-118811.svg)
+![Minimum Rust Version](https://img.shields.io/badge/Min%20Rust-1.34-green.svg)
+[![crates.io](https://img.shields.io/crates/v/aws-arn.svg)](https://crates.io/crates/aws-arn)
+[![docs.rs](https://docs.rs/aws-arn/badge.svg)](https://docs.rs/aws-arn)
+![Build](https://github.com/johnstonskj/rust-aws-arn/workflows/Rust/badge.svg)
+![Audit](https://github.com/johnstonskj/rust-aws-arn/workflows/Security%20audit/badge.svg)
+[![GitHub stars](https://img.shields.io/github/stars/johnstonskj/rust-aws-arn.svg)](https://github.com/johnstonskj/rust-aws-arn/stargazers)
+
+
+The ARN is a key component of all AWS service APIs and yet nearly all client toolkits treat it
+simply as a string. While this may be a reasonable and expedient decision, it seems there might
+be a need to not only ensure correctness of ARNs with validators but also constructors that allow
+making these strings correclt in the first place.
+
+# ARN Types
+
+This crate provides a number of levels of ARN manipulation, the first is the direct construction
+of an ARN type using the core `ARN`, `Identifier`, and `ResourceIdentifier` types.
+
+```rust
+use aws_arn::{ARN, ResourceIdentifier};
+use aws_arn::known::{Partition, Service};
+use std::str::FromStr;
+
+let arn = ARN {
+    partition: Some(Partition::default().into()),
+    service: Service::S3.into(),
+    region: None,
+    account_id: None,
+    resource: ResourceIdentifier::from_str("mythings/thing-1").unwrap()
+};
+```
+
+In the example above, as we are defining a minimal ARN we could use one of the defined constructor
+functions.
+
+```rust
+use aws_arn::{ARN, ResourceIdentifier};
+use aws_arn::known::Service;
+use std::str::FromStr;
+
+let arn = ARN::aws(
+    Service::S3.into(),
+    ResourceIdentifier::from_str("mythings/thing-1").unwrap()
+);
+```
+
+Alternatively, using `FromStr,` you can parse an existing ARN string into an ARN value.
+
+```rust
+use aws_arn::ARN;
+use std::str::FromStr;
+
+let arn: ARN = "arn:aws:s3:::mythings/thing-1".parse().expect("didn't look like an ARN");
+```
+
+Another approach is to use a more readable *builder* which also allows you to ignore those fields
+in the ARN you don't always need and uses a more fluent style of ARN construction.
+
+```rust
+use aws_arn::builder::{ArnBuilder, ResourceBuilder};
+use aws_arn::known::{Partition, Service};
+use aws_arn::{ARN, Identifier};
+use std::str::FromStr;
+
+let arn: ARN = ArnBuilder::service_id(Service::S3.into())
+    .resource(ResourceBuilder::named(Identifier::from_str("mythings").unwrap())
+        .resource_name(Identifier::new_unchecked("my-layer"))
+        .build_resource_path())
+    .in_partition_id(Partition::Aws.into())
+    .into();
+```
+
+Finally, it is possible to use resource-type specific functions that allow an even more direct and
+simple construction (module `aws_arn::builder::{service}` - *service builder functions*, although
+at this time there are few supported services.
+
+```rust
+use aws_arn::builder::s3;
+use aws_arn::Identifier;
+use std::str::FromStr;
+
+let arn = s3::object(
+    Identifier::from_str("mythings").unwrap(),
+    Identifier::from_str("thing-1").unwrap(),
+);
+```
+
+For more, see the AWS documentation for [Amazon Resource Name
+(ARN)](https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html) documentation.
+
+# Optional Features
+
+This crate has attempted to be as lean as possible, with a really minimal set of dependencies,
+we have include the following capabilities as optional features.
+
+* `builders` adds the builder module. This feature is enabled by default, it also requires the
+  `known` feature.
+* `known` adds a module containing enums for partitions, regions, and services.
+  This feature is enabled by default.
+* `serde_support` adds derived `Serialize` and `Deserialize` implementations for the `ARN` and
+  `Resource` types. This feature is enabled by default.
+
+## Features
+
+This crate has attempted to be as lean as possible, with a really minimal set of dependencies, we have include the following as features.
+
+* `serde_support` derives `Serialize` and `Deserialize` for the `ARN` and `Resource` types.
+* `ext_validation` adds extended, service specific, validation using an external configuration file.
+
+## Changes
+
+**Version 0.2.1**
+
+* Created a new `AccountIdentifier` type for the 12-digit value.
+* `consts` feature renamed `known`.
 
 **Version 0.2.0**
 

@@ -124,7 +124,7 @@
     unused_results,
 )]
 
-#[cfg(feature = "consts")]
+#[cfg(feature = "known")]
 #[macro_use]
 extern crate lazy_static;
 
@@ -140,12 +140,20 @@ use std::str::FromStr;
 // ------------------------------------------------------------------------------------------------
 
 ///
-/// A string value that is used to capture the partition, service, region, and account ID components
+/// A string value that is used to capture the partition, service, and region components
 /// of an ARN. These are ASCII only, may not include control characters, spaces, '/', or ':'.
 ///
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
 pub struct Identifier(String);
+
+///
+/// A string value that is used to capture the account ID component
+/// of an ARN. These are ASCII digits only and a fixed length of 12 characters.
+///
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
+pub struct AccountIdentifier(String);
 
 ///
 /// A string value that is used to capture the resource component of an ARN. These are ASCII only,
@@ -190,20 +198,20 @@ pub struct ARN {
     /// The partition that the resource is in. For standard AWS Regions, the partition is` aws`.
     /// If you have resources in other partitions, the partition is `aws-partitionname`. For
     /// example, the partition for resources in the China partition is `aws-cn`. The module
-    /// `consts::partition` provides common values as constants (if the `consts` feature is
+    /// `known::partition` provides common values as constants (if the `known` feature is
     /// enabled).
     pub partition: Option<Identifier>,
-    /// The service namespace that identifies the AWS. The module `consts::service` provides
-    //  common values as constants (if the `consts` feature is enabled).
+    /// The service namespace that identifies the AWS. The module `known::service` provides
+    //  common values as constants (if the `known` feature is enabled).
     pub service: Identifier,
     /// The Region that the resource resides in. The ARNs for some resources do not require
-    /// a Region, so this component might be omitted. The module `consts::region` provides
-    /// common values as constants (if the `consts` feature is enabled).
+    /// a Region, so this component might be omitted. The module `known::region` provides
+    /// common values as constants (if the `known` feature is enabled).
     pub region: Option<Identifier>,
     /// The ID of the AWS account that owns the resource, without the hyphens. For example,
     /// `123456789012`. The ARNs for some resources don't require an account number, so this
     /// component may be omitted.
-    pub account_id: Option<Identifier>,
+    pub account_id: Option<AccountIdentifier>,
     /// The content of this part of the ARN varies by service. A resource identifier can
     /// be the name or ID of the resource (for example, `user/Bob` or
     /// `instance/i-1234567890abcdef0`) or a resource path. For example, some resource
@@ -278,6 +286,60 @@ impl Identifier {
         !s.is_empty()
             && s.chars()
                 .all(|c| c > '\u{1F}' && c < '\u{7F}' && c != ' ' && c != '/' && c != ':')
+    }
+}
+
+// ------------------------------------------------------------------------------------------------
+
+impl Default for AccountIdentifier {
+    fn default() -> Self {
+        Self(String::default())
+    }
+}
+
+impl Display for AccountIdentifier {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+impl FromStr for AccountIdentifier {
+    type Err = ArnError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if Self::is_valid(s) {
+            Ok(Self(s.to_string()))
+        } else {
+            Err(ArnError::InvalidIdentifier(s.to_string()))
+        }
+    }
+}
+
+impl From<AccountIdentifier> for String {
+    fn from(v: AccountIdentifier) -> Self {
+        v.0
+    }
+}
+
+impl Deref for AccountIdentifier {
+    type Target = str;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl AccountIdentifier {
+    /// Construct a new `AccountIdentifier` from the provided string **without** checking it's validity.
+    /// This can be a useful method to improve performance for statically, or well-known, values;
+    /// however, in general `FromStr::from_str` should be used.
+    pub fn new_unchecked(s: &str) -> Self {
+        Self(s.to_string())
+    }
+
+    /// Returns `true` if the provided string is a valid `Identifier` value, else `false`.
+    pub fn is_valid(s: &str) -> bool {
+        s.len() == 12 && s.chars().all(char::is_ascii_digit)
     }
 }
 
