@@ -113,6 +113,10 @@ we have include the following capabilities as optional features.
 
 ## Changes
 
+**Version 0.3.1**
+
+* Added unit tests for `AccountIdentifier`.
+
 **Version 0.3.0**
 
 * **Breaking Change**: Renamed `ARN` to `ResourceName`.

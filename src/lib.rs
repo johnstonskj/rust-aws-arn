@@ -390,9 +390,11 @@ impl IdentifierLike for AccountIdentifier {
 
     fn is_valid(s: &str) -> bool {
         (s.len() == 12 && s.chars().all(|c| c.is_ascii_digit()))
-            || (s.len() <= 12
+            || (!s.is_empty()
+                && s.len() <= 12
                 && s.chars()
-                    .all(|c| c.is_ascii_digit() || c == CHAR_WILD_ONE || c == CHAR_WILD_ANY))
+                    .all(|c| c.is_ascii_digit() || c == CHAR_WILD_ONE || c == CHAR_WILD_ANY)
+                && s.chars().any(|c| c == CHAR_WILD_ONE || c == CHAR_WILD_ANY))
     }
 }
 
