@@ -1,24 +1,28 @@
 /*!
-* Provides types, builders, and other helpers to manipulate AWS
-* [Amazon Resource Name (ARN)](https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
+* Provides types, builders, and other helpers to manipulate AWS [Amazon
+* Resource Name
+* (ResourceName)](https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
 * strings.
 *
-* The ARN is a key component of all AWS service APIs and yet nearly all client toolkits treat it
-* simply as a string. While this may be a reasonable and expedient decision, it seems there might
-* be a need to not only ensure correctness of ARNs with validators but also constructors that allow
-* making these strings correclt in the first place.
+* The ResourceName is a key component of all AWS service APIs and yet nearly
+* all client toolkits treat it simply as a string. While this may be a
+* reasonable and expedient decision, it seems there might be a need to not
+* only ensure correctness of ResourceNames with validators but also
+* constructors that allow making these strings correclt in the first place.
 *
-* # ARN Types
+* # ResourceName Types
 *
-* This crate provides a number of levels of ARN manipulation, the first is the direct construction
-* of an ARN type using the core `ARN`, `Identifier`, and `ResourceIdentifier` types.
+* This crate provides a number of levels of ResourceName manipulation, the
+* first is the direct construction of an ResourceName type using the core
+* `ResourceName`, `Identifier`, `AccountIdentifier`, and `ResourceIdentifier`
+* types.
 *
 * ```rust
-* use aws_arn::{ARN, ResourceIdentifier};
+* use aws_arn::{ResourceName, ResourceIdentifier};
 * use aws_arn::known::{Partition, Service};
 * use std::str::FromStr;
 *
-* let arn = ARN {
+* let arn = ResourceName {
 *     partition: Some(Partition::default().into()),
 *     service: Service::S3.into(),
 *     region: None,
@@ -27,39 +31,41 @@
 * };
 * ```
 *
-* In the example above, as we are defining a minimal ARN we could use one of the defined constructor
+* In the example above, as we are defining a minimal ResourceName we could use one of the defined constructor
 * functions.
 *
 * ```rust
-* use aws_arn::{ARN, ResourceIdentifier};
+* use aws_arn::{ResourceName, ResourceIdentifier};
 * use aws_arn::known::Service;
 * use std::str::FromStr;
 *
-* let arn = ARN::aws(
+* let arn = ResourceName::aws(
 *     Service::S3.into(),
 *     ResourceIdentifier::from_str("mythings/thing-1").unwrap()
 * );
 * ```
 *
-* Alternatively, using `FromStr,` you can parse an existing ARN string into an ARN value.
+* Alternatively, using `FromStr,` you can parse an existing ResourceName string into an ResourceName value.
 *
 * ```rust
-* use aws_arn::ARN;
+* use aws_arn::ResourceName;
 * use std::str::FromStr;
 *
-* let arn: ARN = "arn:aws:s3:::mythings/thing-1".parse().expect("didn't look like an ARN");
+* let arn: ResourceName = "arn:aws:s3:::mythings/thing-1"
+*     .parse()
+*     .expect("didn't look like an ResourceName");
 * ```
 *
 * Another approach is to use a more readable *builder* which also allows you to ignore those fields
-* in the ARN you don't always need and uses a more fluent style of ARN construction.
+* in the ResourceName you don't always need and uses a more fluent style of ResourceName construction.
 *
 * ```rust
 * use aws_arn::builder::{ArnBuilder, ResourceBuilder};
 * use aws_arn::known::{Partition, Service};
-* use aws_arn::{ARN, Identifier};
+* use aws_arn::{ResourceName, Identifier, IdentifierLike};
 * use std::str::FromStr;
 *
-* let arn: ARN = ArnBuilder::service_id(Service::S3.into())
+* let arn: ResourceName = ArnBuilder::service_id(Service::S3.into())
 *     .resource(ResourceBuilder::named(Identifier::from_str("mythings").unwrap())
 *         .resource_name(Identifier::new_unchecked("my-layer"))
 *         .build_resource_path())
@@ -83,7 +89,7 @@
 * ```
 *
 * For more, see the AWS documentation for [Amazon Resource Name
-* (ARN)](https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html) documentation.
+* (ResourceName)](https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html) documentation.
 *
 * # Optional Features
 *
@@ -94,9 +100,8 @@
 *   `known` feature.
 * * `known` adds a module containing enums for partitions, regions, and services.
 *   This feature is enabled by default.
-* * `serde_support` adds derived `Serialize` and `Deserialize` implementations for the `ARN` and
+* * `serde_support` adds derived `Serialize` and `Deserialize` implementations for the `ResourceName` and
 *   `Resource` types. This feature is enabled by default.
-*
 *
 */
 
@@ -124,10 +129,12 @@
     unused_results,
 )]
 
+use lazy_static::lazy_static;
+use regex::{Captures, Regex};
 #[cfg(feature = "serde_support")]
 use serde::{Deserialize, Serialize};
-
-use std::fmt::{Debug, Display, Error, Formatter};
+use std::collections::HashMap;
+use std::fmt::{Debug, Display, Formatter};
 use std::ops::Deref;
 use std::str::FromStr;
 
@@ -135,48 +142,90 @@ use std::str::FromStr;
 // Public Types
 // ------------------------------------------------------------------------------------------------
 
+/// This trait is implemented by the `ResourceName` component types. It
+/// represents a string-based identifier that is generally constructed using
+/// `FromStr::from_str`.
+///
+pub trait IdentifierLike
+where
+    Self: Clone + Display + FromStr + Deref<Target = str>,
+{
+    /// Construct a new `Identifier` from the provided string **without** checking it's validity.
+    /// This can be a useful method to improve performance for statically, or well-known, values;
+    /// however, in general `FromStr::from_str` should be used.
+    fn new_unchecked(s: &str) -> Self
+    where
+        Self: Sized;
+
+    /// Returns `true` if the provided string is a valid `Identifier` value, else `false`.
+    fn is_valid(s: &str) -> bool;
+
+    /// Construct an account identifier that represents *any*.
+    fn any() -> Self {
+        Self::new_unchecked(STRING_WILD_ANY)
+    }
+
+    /// Return `true` if this is simply the *any* wildcard, else `false`.
+    fn is_any(&self) -> bool {
+        self.deref().chars().any(|c| c == CHAR_WILD_ANY)
+    }
+
+    /// Returns `true` if this identifier contains any wildcard characeters,
+    /// else `false`.
+    fn has_wildcards(&self) -> bool {
+        self.deref()
+            .chars()
+            .any(|c| c == CHAR_WILD_ONE || c == CHAR_WILD_ANY)
+    }
+
+    /// Return `true` if this identifier has no wildcards, else `false`.
+    fn is_plain(&self) -> bool {
+        !self.has_wildcards()
+    }
+}
+
 ///
 /// A string value that is used to capture the partition, service, and region components
-/// of an ARN. These are ASCII only, may not include control characters, spaces, '/', or ':'.
+/// of an ResourceName. These are ASCII only, may not include control characters, spaces, '/', or ':'.
 ///
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
 pub struct Identifier(String);
 
 ///
 /// A string value that is used to capture the account ID component
-/// of an ARN. These are ASCII digits only and a fixed length of 12 characters.
+/// of an ResourceName. These are ASCII digits only and a fixed length of 12 characters.
 ///
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
 pub struct AccountIdentifier(String);
 
 ///
-/// A string value that is used to capture the resource component of an ARN. These are ASCII only,
+/// A string value that is used to capture the resource component of an ResourceName. These are ASCII only,
 /// may not include control characters but unlike `Identifier` they may include spaces, '/', and ':'.
 ///
-/// > *The content of this part of the ARN varies by service. A resource identifier can be the name
+/// > *The content of this part of the ResourceName varies by service. A resource identifier can be the name
 /// > or ID of the resource (for example, `user/Bob` or `instance/i-1234567890abcdef0`) or a
 /// > resource path. For example, some resource identifiers include a parent resource
 /// > (`sub-resource-type/parent-resource/sub-resource`) or a qualifier such as a version
 /// > (`resource-type:resource-name:qualifier`).*
 ///
-/// > *Some resource ARNs can include a path. For example, in Amazon S3, the resource identifier
+/// > *Some resource ResourceNames can include a path. For example, in Amazon S3, the resource identifier
 /// > is an object name that can include slashes ('/') to form a path. Similarly, IAM user names
 /// > and group names can include paths.*
 ///
 /// > *In some circumstances, paths can include a wildcard character, namely an asterisk ('*').*
 ///
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
 pub struct ResourceIdentifier(String);
 
 ///
-/// Amazon Resource Names (ARNs) uniquely identify AWS resources. We require an ARN when you
+/// Amazon Resource Names (ResourceNames) uniquely identify AWS resources. We require an ResourceName when you
 /// need to specify a resource unambiguously across all of AWS, such as in IAM policies,
 /// Amazon Relational Database Service (Amazon RDS) tags, and API calls.
 ///
-/// The following are the general formats for ARNs; the specific components and values used
+/// The following are the general formats for ResourceNames; the specific components and values used
 /// depend on the AWS service.
 ///
 /// ```text
@@ -185,12 +234,12 @@ pub struct ResourceIdentifier(String);
 /// arn:partition:service:region:account-id:resource-type:resource-id
 /// ```
 ///
-/// From [ARN Format](https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html#arns-syntax)
+/// From [ResourceName Format](https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html#arns-syntax)
 ///
 #[allow(clippy::upper_case_acronyms)]
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde_support", derive(Deserialize, Serialize))]
-pub struct ARN {
+pub struct ResourceName {
     /// The partition that the resource is in. For standard AWS Regions, the partition is` aws`.
     /// If you have resources in other partitions, the partition is `aws-partitionname`. For
     /// example, the partition for resources in the China partition is `aws-cn`. The module
@@ -200,15 +249,15 @@ pub struct ARN {
     /// The service namespace that identifies the AWS. The module `known::service` provides
     //  common values as constants (if the `known` feature is enabled).
     pub service: Identifier,
-    /// The Region that the resource resides in. The ARNs for some resources do not require
+    /// The Region that the resource resides in. The ResourceNames for some resources do not require
     /// a Region, so this component might be omitted. The module `known::region` provides
     /// common values as constants (if the `known` feature is enabled).
     pub region: Option<Identifier>,
     /// The ID of the AWS account that owns the resource, without the hyphens. For example,
-    /// `123456789012`. The ARNs for some resources don't require an account number, so this
+    /// `123456789012`. The ResourceNames for some resources don't require an account number, so this
     /// component may be omitted.
     pub account_id: Option<AccountIdentifier>,
-    /// The content of this part of the ARN varies by service. A resource identifier can
+    /// The content of this part of the ResourceName varies by service. A resource identifier can
     /// be the name or ID of the resource (for example, `user/Bob` or
     /// `instance/i-1234567890abcdef0`) or a resource path. For example, some resource
     /// identifiers include a parent resource
@@ -224,22 +273,26 @@ pub struct ARN {
 const ARN_PREFIX: &str = "arn";
 
 const PART_SEPARATOR: char = ':';
-
 const PATH_SEPARATOR: char = '/';
 
 const STRING_WILD_ANY: &str = "*";
 
+const CHAR_ASCII_START: char = '\u{1F}';
+const CHAR_ASCII_END: char = '\u{7F}';
+const CHAR_SPACE: char = ' ';
 const CHAR_WILD_ONE: char = '?';
-
 const CHAR_WILD_ANY: char = '*';
 
-// ------------------------------------------------------------------------------------------------
+const REQUIRED_COMPONENT_COUNT: usize = 6;
 
-impl Default for Identifier {
-    fn default() -> Self {
-        Self(String::default())
-    }
+const PARTITION_AWS_PREFIX: &str = "aws";
+const PARTITION_AWS_OTHER_PREFIX: &str = "aws-";
+
+lazy_static! {
+    static ref REGEX_VARIABLE: Regex = Regex::new(r"\$\{([^$}]+)\}").unwrap();
 }
+
+// ------------------------------------------------------------------------------------------------
 
 impl Display for Identifier {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
@@ -248,13 +301,13 @@ impl Display for Identifier {
 }
 
 impl FromStr for Identifier {
-    type Err = ArnError;
+    type Err = Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         if Self::is_valid(s) {
             Ok(Self(s.to_string()))
         } else {
-            Err(ArnError::InvalidIdentifier(s.to_string()))
+            Err(Error::InvalidIdentifier(s.to_string()))
         }
     }
 }
@@ -273,52 +326,24 @@ impl Deref for Identifier {
     }
 }
 
-impl Identifier {
-    /// Construct a new `Identifier` from the provided string **without** checking it's validity.
-    /// This can be a useful method to improve performance for statically, or well-known, values;
-    /// however, in general `FromStr::from_str` should be used.
-    pub fn new_unchecked(s: &str) -> Self {
+impl IdentifierLike for Identifier {
+    fn new_unchecked(s: &str) -> Self {
         Self(s.to_string())
     }
 
-    /// Returns `true` if the provided string is a valid `Identifier` value, else `false`.
-    pub fn is_valid(s: &str) -> bool {
+    fn is_valid(s: &str) -> bool {
         !s.is_empty()
             && s.chars().all(|c| {
-                c > '\u{1F}'
-                    && c < '\u{7F}'
-                    && c != ' '
+                c > CHAR_ASCII_START
+                    && c < CHAR_ASCII_END
+                    && c != CHAR_SPACE
                     && c != PATH_SEPARATOR
                     && c != PART_SEPARATOR
             })
     }
-
-    /// Construct an identifier that represents *any*.
-    pub fn any() -> Self {
-        Self(STRING_WILD_ANY.to_string())
-    }
-
-    /// Return `true` if this is simply the *any* wildcard, else `false`.
-    pub fn is_any(&self) -> bool {
-        self.0 == STRING_WILD_ANY
-    }
-
-    /// Returns `true` if this identifier contains any wildcard characeters,
-    /// else `false`.
-    pub fn has_wildcards(&self) -> bool {
-        self.0
-            .chars()
-            .any(|c| c == CHAR_WILD_ONE || c == CHAR_WILD_ANY)
-    }
 }
 
 // ------------------------------------------------------------------------------------------------
-
-impl Default for AccountIdentifier {
-    fn default() -> Self {
-        Self(String::default())
-    }
-}
 
 impl Display for AccountIdentifier {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
@@ -327,13 +352,13 @@ impl Display for AccountIdentifier {
 }
 
 impl FromStr for AccountIdentifier {
-    type Err = ArnError;
+    type Err = Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         if Self::is_valid(s) {
             Ok(Self(s.to_string()))
         } else {
-            Err(ArnError::InvalidAccountId(s.to_string()))
+            Err(Error::InvalidAccountId(s.to_string()))
         }
     }
 }
@@ -344,9 +369,9 @@ impl From<AccountIdentifier> for String {
     }
 }
 
-impl From<AccountIdentifier> for ARN {
+impl From<AccountIdentifier> for ResourceName {
     fn from(account: AccountIdentifier) -> Self {
-        ARN::from_str(&format!("arn:aws:iam::{}:root", account)).unwrap()
+        ResourceName::from_str(&format!("arn:aws:iam::{}:root", account)).unwrap()
     }
 }
 
@@ -358,48 +383,20 @@ impl Deref for AccountIdentifier {
     }
 }
 
-impl AccountIdentifier {
-    /// Construct a new `AccountIdentifier` from the provided string **without** checking it's validity.
-    /// This can be a useful method to improve performance for statically, or well-known, values;
-    /// however, in general `FromStr::from_str` should be used.
-    pub fn new_unchecked(s: &str) -> Self {
+impl IdentifierLike for AccountIdentifier {
+    fn new_unchecked(s: &str) -> Self {
         Self(s.to_string())
     }
 
-    /// Returns `true` if the provided string is a valid `Identifier` value, else `false`.
-    pub fn is_valid(s: &str) -> bool {
+    fn is_valid(s: &str) -> bool {
         (s.len() == 12 && s.chars().all(|c| c.is_ascii_digit()))
             || (s.len() <= 12
                 && s.chars()
                     .all(|c| c.is_ascii_digit() || c == CHAR_WILD_ONE || c == CHAR_WILD_ANY))
     }
-
-    /// Construct an account identifier that represents *any*.
-    pub fn any() -> Self {
-        Self(STRING_WILD_ANY.to_string())
-    }
-
-    /// Return `true` if this is simply the *any* wildcard, else `false`.
-    pub fn is_any(&self) -> bool {
-        self.0 == STRING_WILD_ANY
-    }
-
-    /// Returns `true` if this identifier contains any wildcard characeters,
-    /// else `false`.
-    pub fn has_wildcards(&self) -> bool {
-        self.0
-            .chars()
-            .any(|c| c == CHAR_WILD_ONE || c == CHAR_WILD_ANY)
-    }
 }
 
 // ------------------------------------------------------------------------------------------------
-
-impl Default for ResourceIdentifier {
-    fn default() -> Self {
-        Self(String::default())
-    }
-}
 
 impl Display for ResourceIdentifier {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
@@ -408,13 +405,13 @@ impl Display for ResourceIdentifier {
 }
 
 impl FromStr for ResourceIdentifier {
-    type Err = ArnError;
+    type Err = Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         if Self::is_valid(s) {
             Ok(Self(s.to_string()))
         } else {
-            Err(ArnError::InvalidResource(s.to_string()))
+            Err(Error::InvalidResource(s.to_string()))
         }
     }
 }
@@ -439,37 +436,21 @@ impl Deref for ResourceIdentifier {
     }
 }
 
-impl ResourceIdentifier {
-    /// Construct a new `ResourceIdentifier` from the provided string **without** checking it's
-    /// validity. This can be a useful method to improve performance for statically, or well-known,
-    /// values; however, in general `FromStr::from_str` should be used.
-    pub fn new_unchecked(s: &str) -> Self {
+impl IdentifierLike for ResourceIdentifier {
+    fn new_unchecked(s: &str) -> Self {
         Self(s.to_string())
     }
 
-    /// Returns `true` if the provided string is a valid `ResourceIdentifier` value, else `false`.
-    pub fn is_valid(s: &str) -> bool {
+    fn is_valid(s: &str) -> bool {
         !s.is_empty() && s.chars().all(|c| c > '\u{1F}' && c < '\u{7F}')
     }
 
-    /// Construct a resource identifier that represents *any*.
-    pub fn any() -> Self {
-        Self(STRING_WILD_ANY.to_string())
+    fn is_plain(&self) -> bool {
+        !self.has_wildcards() && !self.has_variables()
     }
+}
 
-    /// Return `true` if this is simply the *any* wildcard, else `false`.
-    pub fn is_any(&self) -> bool {
-        self.0 == STRING_WILD_ANY
-    }
-
-    /// Returns `true` if this identifier contains any wildcard characeters,
-    /// else `false`.
-    pub fn has_wildcards(&self) -> bool {
-        self.0
-            .chars()
-            .any(|c| c == CHAR_WILD_ONE || c == CHAR_WILD_ANY)
-    }
-
+impl ResourceIdentifier {
     /// Construct a resource identifier, as a path, using the `Identifier` path components.
     pub fn from_id_path(path: &[Identifier]) -> Self {
         Self::new_unchecked(
@@ -539,12 +520,35 @@ impl ResourceIdentifier {
             .map(ResourceIdentifier::new_unchecked)
             .collect()
     }
+
+    /// Return `true` if the identifier contains variables of the form
+    /// `${name}`, else `false`.
+    pub fn has_variables(&self) -> bool {
+        REGEX_VARIABLE.is_match(self.deref())
+    }
+
+    /// Replace any variables in the string with values from the context,
+    /// returning a new value if the replacements result in a legal identifier
+    /// string. The
+    pub fn replace_variables<V>(&self, context: &HashMap<String, V>) -> Result<Self, Error>
+    where
+        V: Clone + Into<String>,
+    {
+        let new_text = REGEX_VARIABLE.replace_all(self.deref(), |caps: &Captures<'_>| {
+            if let Some(value) = context.get(&caps[1]) {
+                value.clone().into()
+            } else {
+                format!("${{{}}}", &caps[1])
+            }
+        });
+        Self::from_str(&new_text)
+    }
 }
 
 // ------------------------------------------------------------------------------------------------
 
-impl Display for ARN {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
+impl Display for ResourceName {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
             "{}",
@@ -570,8 +574,8 @@ impl Display for ARN {
     }
 }
 
-impl FromStr for ARN {
-    type Err = ArnError;
+impl FromStr for ResourceName {
+    type Err = Error;
 
     ///
     /// Format:
@@ -580,18 +584,20 @@ impl FromStr for ARN {
     ///
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut parts: Vec<&str> = s.split(PART_SEPARATOR).collect();
-        if parts.len() < 6 {
-            Err(ArnError::TooFewComponents)
+        if parts.len() < REQUIRED_COMPONENT_COUNT {
+            Err(Error::TooFewComponents)
         } else if parts[0] != ARN_PREFIX {
-            Err(ArnError::MissingPrefix)
+            Err(Error::MissingPrefix)
         } else {
-            let new_arn = ARN {
+            let new_arn = ResourceName {
                 partition: if parts[1].is_empty() {
                     None
-                } else if parts[1] == "aws" || parts[1].starts_with("aws-") {
+                } else if parts[1] == PARTITION_AWS_PREFIX
+                    || parts[1].starts_with(PARTITION_AWS_OTHER_PREFIX)
+                {
                     Some(Identifier::from_str(parts[1])?)
                 } else {
-                    return Err(ArnError::InvalidPartition);
+                    return Err(Error::InvalidPartition);
                 },
                 service: Identifier::from_str(parts[2])?,
                 region: if parts[3].is_empty() {
@@ -615,8 +621,8 @@ impl FromStr for ARN {
     }
 }
 
-impl ARN {
-    /// Construct a minimal `ARN` value with simply a service and resource.
+impl ResourceName {
+    /// Construct a minimal `ResourceName` value with simply a service and resource.
     pub fn new(service: Identifier, resource: ResourceIdentifier) -> Self {
         Self {
             partition: None,
@@ -627,7 +633,7 @@ impl ARN {
         }
     }
 
-    /// Construct a minimal `ARN` value with simply a service and resource in the `aws` partition.
+    /// Construct a minimal `ResourceName` value with simply a service and resource in the `aws` partition.
     pub fn aws(service: Identifier, resource: ResourceIdentifier) -> Self {
         Self {
             partition: Some(known::Partition::default().into()),
@@ -636,6 +642,25 @@ impl ARN {
             account_id: None,
             resource,
         }
+    }
+
+    /// Return `true` if the identifier contains variables of the form
+    /// `${name}`, else `false`.
+    pub fn has_variables(&self) -> bool {
+        self.resource.has_variables()
+    }
+
+    /// Replace any variables in the string with values from the context,
+    /// returning a new value if the replacements result in a legal identifier
+    /// string. The
+    pub fn replace_variables<V>(&self, context: &HashMap<String, V>) -> Result<Self, Error>
+    where
+        V: Clone + Into<String>,
+    {
+        Ok(Self {
+            resource: self.resource.replace_variables(context)?,
+            ..self.clone()
+        })
     }
 }
 
@@ -651,4 +676,4 @@ pub mod known;
 
 #[doc(hidden)]
 mod error;
-pub use crate::error::ArnError;
+pub use crate::error::Error;

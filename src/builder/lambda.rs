@@ -1,5 +1,5 @@
 /*!
-Provides a set of simple helper functions to make ARNs for the Lambda service.
+Provides a set of simple helper functions to make ResourceNames for the Lambda service.
 
 These resource definitions ae take from the AWS
 [documentation](https://docs.aws.amazon.com/IAM/latest/UserGuide/list_awslambda.html#awslambda-resources-for-iam-policies).
@@ -7,7 +7,7 @@ These resource definitions ae take from the AWS
 
 use crate::builder::ArnBuilder;
 use crate::known::Service::Lambda;
-use crate::{AccountIdentifier, Identifier, ResourceIdentifier, ARN};
+use crate::{AccountIdentifier, Identifier, IdentifierLike, ResourceIdentifier, ResourceName};
 
 // ------------------------------------------------------------------------------------------------
 // Public Functions
@@ -21,7 +21,7 @@ pub fn function(
     region: Identifier,
     account: AccountIdentifier,
     function_name: Identifier,
-) -> ARN {
+) -> ResourceName {
     ArnBuilder::service_id(Lambda.into())
         .in_partition_id(partition)
         .in_region_id(region)
@@ -41,7 +41,7 @@ pub fn layer(
     region: Identifier,
     account: AccountIdentifier,
     layer_name: Identifier,
-) -> ARN {
+) -> ResourceName {
     ArnBuilder::service_id(Lambda.into())
         .in_partition_id(partition)
         .in_region_id(region)
@@ -62,7 +62,7 @@ pub fn layer_version(
     account: AccountIdentifier,
     layer_name: Identifier,
     layer_version: i32,
-) -> ARN {
+) -> ResourceName {
     ArnBuilder::service_id(Lambda.into())
         .in_partition_id(partition)
         .in_region_id(region)
@@ -83,7 +83,7 @@ pub fn event_source_mapping(
     region: Identifier,
     account: AccountIdentifier,
     mapping_uuid: Identifier,
-) -> ARN {
+) -> ResourceName {
     ArnBuilder::service_id(Lambda.into())
         .in_partition_id(partition)
         .in_region_id(region)

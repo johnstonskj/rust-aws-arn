@@ -2,17 +2,11 @@
 Provides enums that represent known values for ARN partition, region, and service identifiers.
 */
 
-use crate::Identifier;
+use crate::{Identifier, IdentifierLike};
 
 // ------------------------------------------------------------------------------------------------
 // Public Types
 // ------------------------------------------------------------------------------------------------
-
-impl Default for Partition {
-    fn default() -> Self {
-        Self::Aws
-    }
-}
 
 ///
 /// A list of known partition identifiers from
@@ -887,6 +881,14 @@ pub enum Service {
 // Implementations
 // ------------------------------------------------------------------------------------------------
 
+impl Default for Partition {
+    fn default() -> Self {
+        Self::Aws
+    }
+}
+
+// ------------------------------------------------------------------------------------------------
+
 impl From<Partition> for Identifier {
     fn from(p: Partition) -> Self {
         match p {
@@ -896,8 +898,6 @@ impl From<Partition> for Identifier {
         }
     }
 }
-
-// ------------------------------------------------------------------------------------------------
 
 impl From<Region> for Identifier {
     fn from(r: Region) -> Self {

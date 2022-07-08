@@ -1,12 +1,12 @@
 use aws_arn::builder::ArnBuilder;
 use aws_arn::known::Region::UsEast2;
 use aws_arn::known::Service::{Lambda, S3};
-use aws_arn::{AccountIdentifier, Identifier, ResourceIdentifier, ARN};
+use aws_arn::{AccountIdentifier, Identifier, ResourceIdentifier, ResourceName};
 use std::str::FromStr;
 
 #[test]
 fn test_s3_bucket() {
-    let arn: ARN = ArnBuilder::service_id(S3.into())
+    let arn: ResourceName = ArnBuilder::service_id(S3.into())
         .resource(ResourceIdentifier::from_str("my-bucket").unwrap())
         .into();
     assert_eq!(arn.to_string(), "arn:aws:s3:::my-bucket");
@@ -14,7 +14,7 @@ fn test_s3_bucket() {
 
 #[test]
 fn test_lambda_layer() {
-    let arn: ARN = ArnBuilder::service_id(Lambda.into())
+    let arn: ResourceName = ArnBuilder::service_id(Lambda.into())
         .resource(ResourceIdentifier::from_qualified_id(&[
             Identifier::from_str("layer").unwrap(),
             Identifier::from_str("my-layer").unwrap(),

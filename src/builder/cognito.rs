@@ -1,5 +1,5 @@
 /*!
-Provides a set of simple helper functions to make ARNs for the Cognito Identity service.
+Provides a set of simple helper functions to make ResourceNames for the Cognito Identity service.
 
 These resource definitions ae take from the AWS
 [documentation](https://docs.aws.amazon.com/IAM/latest/UserGuide/list_amazoncognitoidentity.html#amazoncognitoidentity-resources-for-iam-policies).
@@ -7,7 +7,7 @@ These resource definitions ae take from the AWS
 
 use crate::builder::ArnBuilder;
 use crate::known::Service::CognitoIdentity;
-use crate::{AccountIdentifier, Identifier, ResourceIdentifier, ARN};
+use crate::{AccountIdentifier, Identifier, IdentifierLike, ResourceIdentifier, ResourceName};
 
 // ------------------------------------------------------------------------------------------------
 // Public Functions
@@ -21,7 +21,7 @@ pub fn identity_pool(
     region: Identifier,
     account: AccountIdentifier,
     identity_pool_id: Identifier,
-) -> ARN {
+) -> ResourceName {
     ArnBuilder::service_id(CognitoIdentity.into())
         .in_partition_id(partition)
         .in_region_id(region)

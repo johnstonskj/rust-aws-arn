@@ -7,7 +7,7 @@ More detailed description, with
 
 */
 
-use std::error::Error;
+use std::error::Error as StdError;
 use std::fmt::{Debug, Display, Formatter, Result};
 
 // ------------------------------------------------------------------------------------------------
@@ -15,10 +15,10 @@ use std::fmt::{Debug, Display, Formatter, Result};
 // ------------------------------------------------------------------------------------------------
 
 ///
-/// Errors that may arise parsing an ARN with `FromStr::from_str()`.
+/// Errors that may arise parsing an ResourceName with `FromStr::from_str()`.
 ///
 #[derive(Debug, PartialEq)]
-pub enum ArnError {
+pub enum Error {
     /// String length must be greater than 8 corresponding to `"arn:::::"`.
     TooShort,
     /// String length must be under 2048 characters..
@@ -62,10 +62,10 @@ pub enum ArnError {
 // Implementations
 // ------------------------------------------------------------------------------------------------
 
-impl Display for ArnError {
+impl Display for Error {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         write!(f, "{:?}", self)
     }
 }
 
-impl Error for ArnError {}
+impl StdError for Error {}

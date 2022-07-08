@@ -1,6 +1,6 @@
 [package]
 name = "aws-arn"
-version = "0.2.1"
+version = "0.3.0"
 authors = ["Simon Johnston <johnstonskj@gmail.com>"]
 edition = "2018"
 description = "Provides types, builders, and other helpers to manipulate AWS Amazon Resource Name (ARN) strings"
@@ -21,6 +21,7 @@ serde_support = ["serde"]
 
 # Optional dependencies
 lazy_static = { optional = true, version = "1.4.0" }
+regex = "1.6"
 serde = { optional = true, version = "1.0.110", features = ["derive"] }
 
 [dev-dependencies]

@@ -1,7 +1,7 @@
 /*!
-* Provides a more natural builder interface for constructing ARNs.
+* Provides a more natural builder interface for constructing ResourceNames.
 *
-* The builder pattern allows for a more readable construction of ARNs, and in this case we
+* The builder pattern allows for a more readable construction of ResourceNames, and in this case we
 * provide a number of *verb* prefixes on *noun* constructors, so we have `in_region` as well as
 * `and_region` which is more readable if it is preceded by `in_partition`. For the account id
 * field there is `in_account`, `and_account`, `any_account`, and `owned_by`; all of these
@@ -14,8 +14,8 @@
 * partition in commonly left to default to "aws" there are also a set of `{noun}_in()` functions
 * that take a partition, and corresponding `{noun}()` functions which do not.
 *
-* In some cases where an ARN may be dependent on another, for example an S3 object ARN might be
-* constructed from an existing bucket ARN, additional `{noun}_from(other,...)` functions will
+* In some cases where an ResourceName may be dependent on another, for example an S3 object ResourceName might be
+* constructed from an existing bucket ResourceName, additional `{noun}_from(other,...)` functions will
 * be provided.
 *
 * Note that the final `build()` function will call `validate()`, and so it is possible to call
@@ -23,15 +23,17 @@
 *
 * # Example
 *
-* The following shows the construction of an AWS versioned layer ARN.
+* The following shows the construction of an AWS versioned layer ResourceName.
 *
 * ```rust
 * use aws_arn::builder::{ArnBuilder, ResourceBuilder};
-* use aws_arn::{AccountIdentifier, Identifier, ResourceIdentifier, ARN};
+* use aws_arn::{
+*     AccountIdentifier, Identifier, IdentifierLike, ResourceIdentifier, ResourceName
+* };
 * use aws_arn::known::{Region, Service};
 * use std::str::FromStr;
 *
-* let arn: ARN = ArnBuilder::service_id(Service::Lambda.into())
+* let arn: ResourceName = ArnBuilder::service_id(Service::Lambda.into())
 *     .resource(
 *         ResourceBuilder::typed(Identifier::new_unchecked("layer"))
 *             .resource_name(Identifier::new_unchecked("my-layer"))
@@ -41,25 +43,25 @@
 *     .in_region_id(Region::UsEast2.into())
 *     .owned_by(AccountIdentifier::from_str("123456789012").unwrap())
 *     .into();
-* println!("ARN: '{}'", arn);
+* println!("ResourceName: '{}'", arn);
 * ```
 *
-* This should print `ARN: 'arn:aws:lambda:us-east-2:123456789012:layer:my-layer:3'`.
+* This should print `ResourceName: 'arn:aws:lambda:us-east-2:123456789012:layer:my-layer:3'`.
 */
 
 use crate::known::{Partition, Region, Service};
-use crate::{AccountIdentifier, Identifier, ResourceIdentifier, ARN};
+use crate::{AccountIdentifier, Identifier, IdentifierLike, ResourceIdentifier, ResourceName};
 
 // ------------------------------------------------------------------------------------------------
 // Public Types
 // ------------------------------------------------------------------------------------------------
 
 ///
-/// Builder type for an AWS `ARN`.
+/// Builder type for an AWS `ResourceName`.
 ///
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct ArnBuilder {
-    arn: ARN,
+    arn: ResourceName,
 }
 
 ///
@@ -68,7 +70,7 @@ pub struct ArnBuilder {
 /// The methods `build_resource_path` and `build_qualified_id` are used to construct identifiers
 /// with either the '/' or ':' separator between the collected components.
 ///
-#[derive(Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct ResourceBuilder {
     resource: Vec<ResourceIdentifier>,
 }
@@ -77,28 +79,28 @@ pub struct ResourceBuilder {
 // Implementations
 // ------------------------------------------------------------------------------------------------
 
-impl From<ArnBuilder> for ARN {
+impl From<ArnBuilder> for ResourceName {
     fn from(v: ArnBuilder) -> Self {
         v.arn
     }
 }
 
-impl From<&mut ArnBuilder> for ARN {
+impl From<&mut ArnBuilder> for ResourceName {
     fn from(v: &mut ArnBuilder) -> Self {
         v.arn.clone()
     }
 }
 
 impl ArnBuilder {
-    /// Construct an ARN for the specified `service`.
+    /// Construct an ResourceName for the specified `service`.
     pub fn service(service: Service) -> Self {
         Self::service_id(service.into())
     }
 
-    /// Construct an ARN for the specified `service`.
+    /// Construct an ResourceName for the specified `service`.
     pub fn service_id(service: Identifier) -> Self {
         Self {
-            arn: ARN {
+            arn: ResourceName {
                 partition: None,
                 service,
                 region: None,
@@ -108,113 +110,105 @@ impl ArnBuilder {
         }
     }
 
-    /// Set a specific `partition` for this ARN.
+    /// Set a specific `partition` for this ResourceName.
     pub fn in_partition(&mut self, partition: Partition) -> &mut Self {
         self.in_partition_id(partition.into())
     }
 
-    /// Set a specific `partition` for this ARN.
+    /// Set a specific `partition` for this ResourceName.
     pub fn in_partition_id(&mut self, partition: Identifier) -> &mut Self {
         self.arn.partition = Some(partition);
         self
     }
 
-    /// Set a specific `partition` for this ARN.
+    /// Set a specific `partition` for this ResourceName.
     pub fn in_default_partition(&mut self) -> &mut Self {
         self.arn.partition = Some(Partition::default().into());
         self
     }
 
-    /// Set a specific `partition` for this ARN.
+    /// Set a specific `partition` for this ResourceName.
     pub fn in_any_partition(&mut self) -> &mut Self {
         self.arn.partition = None;
         self
     }
 
-    /// Set a specific `region` for this ARN.
+    /// Set a specific `region` for this ResourceName.
     pub fn in_region(&mut self, region: Region) -> &mut Self {
         self.in_region_id(region.into())
     }
 
-    /// Set a specific `region` for this ARN.
+    /// Set a specific `region` for this ResourceName.
     pub fn in_region_id(&mut self, region: Identifier) -> &mut Self {
         self.arn.region = Some(region);
         self
     }
 
-    /// Set a specific `region` for this ARN.
+    /// Set a specific `region` for this ResourceName.
     pub fn and_region(&mut self, region: Region) -> &mut Self {
         self.in_region_id(region.into())
     }
 
-    /// Set a specific `region` for this ARN.
+    /// Set a specific `region` for this ResourceName.
     pub fn and_region_id(&mut self, region: Identifier) -> &mut Self {
         self.in_region_id(region)
     }
 
-    /// Set `region` to a wildcard for this ARN.
+    /// Set `region` to a wildcard for this ResourceName.
     pub fn in_any_region(&mut self) -> &mut Self {
         self.in_region_id(Identifier::default())
     }
 
-    /// Set a specific `account` for this ARN.
+    /// Set a specific `account` for this ResourceName.
     pub fn in_account(&mut self, account: AccountIdentifier) -> &mut Self {
         self.arn.account_id = Some(account);
         self
     }
 
-    /// Set a specific `account` for this ARN.
+    /// Set a specific `account` for this ResourceName.
     pub fn and_account(&mut self, account: AccountIdentifier) -> &mut Self {
         self.in_account(account)
     }
 
-    /// Set a specific `account` for this ARN.
+    /// Set a specific `account` for this ResourceName.
     pub fn owned_by(&mut self, account: AccountIdentifier) -> &mut Self {
         self.in_account(account)
     }
 
-    /// Set `account` to a wildcard for this ARN.
+    /// Set `account` to a wildcard for this ResourceName.
     pub fn in_any_account(&mut self) -> &mut Self {
         self.in_account(AccountIdentifier::default())
     }
 
-    /// Set a specific `resource` for this ARN.
+    /// Set a specific `resource` for this ResourceName.
     pub fn resource(&mut self, resource: ResourceIdentifier) -> &mut Self {
         self.arn.resource = resource;
         self
     }
 
-    /// Set a specific `resource` for this ARN.
+    /// Set a specific `resource` for this ResourceName.
     pub fn is(&mut self, resource: ResourceIdentifier) -> &mut Self {
         self.resource(resource)
     }
 
-    /// Set a specific `resource` for this ARN.
+    /// Set a specific `resource` for this ResourceName.
     pub fn a(&mut self, resource: ResourceIdentifier) -> &mut Self {
         self.resource(resource)
     }
 
-    /// Set `resource` to a wildcard for this ARN.
+    /// Set `resource` to a wildcard for this ResourceName.
     pub fn any_resource(&mut self) -> &mut Self {
         self.arn.resource = ResourceIdentifier::any();
         self
     }
 
-    /// Set `resource` to a wildcard for this ARN.
+    /// Set `resource` to a wildcard for this ResourceName.
     pub fn for_any_resource(&mut self) -> &mut Self {
         self.any_resource()
     }
 }
 
 // ------------------------------------------------------------------------------------------------
-
-impl Default for ResourceBuilder {
-    fn default() -> Self {
-        Self {
-            resource: Default::default(),
-        }
-    }
-}
 
 impl From<ResourceIdentifier> for ResourceBuilder {
     fn from(v: ResourceIdentifier) -> Self {

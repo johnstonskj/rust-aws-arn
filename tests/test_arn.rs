@@ -1,8 +1,8 @@
-use aws_arn::{AccountIdentifier, Identifier, ResourceIdentifier, ARN};
+use aws_arn::{AccountIdentifier, Identifier, IdentifierLike, ResourceIdentifier, ResourceName};
 use std::str::FromStr;
 
-fn parse_and_compare(test_arn: &str, expected: ARN) {
-    let result = ARN::from_str(test_arn);
+fn parse_and_compare(test_arn: &str, expected: ResourceName) {
+    let result = ResourceName::from_str(test_arn);
     assert!(result.is_ok());
     let arn = result.unwrap();
     assert_eq!(arn, expected);
@@ -10,7 +10,7 @@ fn parse_and_compare(test_arn: &str, expected: ARN) {
 
 #[test]
 fn test_valid_arn_to_string() {
-    let arn = ARN {
+    let arn = ResourceName {
         partition: None,
         service: Identifier::new_unchecked("s3"),
         region: None,
@@ -22,7 +22,7 @@ fn test_valid_arn_to_string() {
 
 #[test]
 fn test_valid_arn_to_string_wild() {
-    let arn = ARN {
+    let arn = ResourceName {
         partition: None,
         service: Identifier::new_unchecked("s3"),
         region: None,
@@ -34,7 +34,7 @@ fn test_valid_arn_to_string_wild() {
 
 #[test]
 fn test_valid_arn_to_string_wild_more() {
-    let arn = ARN {
+    let arn = ResourceName {
         partition: None,
         service: Identifier::new_unchecked("s3"),
         region: None,
@@ -48,7 +48,7 @@ fn test_valid_arn_to_string_wild_more() {
 fn test_arn_from_valid_str() {
     parse_and_compare(
         "arn:aws:s3:us-east-1:123456789012:job/23476",
-        ARN {
+        ResourceName {
             partition: Some(Identifier::new_unchecked("aws")),
             service: Identifier::new_unchecked("s3"),
             region: Some(Identifier::new_unchecked("us-east-1")),
@@ -60,8 +60,9 @@ fn test_arn_from_valid_str() {
 
 #[test]
 fn test_github_issues_2() {
-    let result =
-        ARN::from_str("arn:aws:cloudwatch:us-west-2:123456789012:alarm:Production:LB:High4xx");
+    let result = ResourceName::from_str(
+        "arn:aws:cloudwatch:us-west-2:123456789012:alarm:Production:LB:High4xx",
+    );
     assert!(result.is_ok());
     let arn = result.unwrap();
     assert_eq!(arn.partition, Some(Identifier::new_unchecked("aws")));
