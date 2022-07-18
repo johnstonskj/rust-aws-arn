@@ -68,9 +68,9 @@ Another approach is to use a more readable *builder* which also allows you to ig
 in the ARN you don't always need and uses a more fluent style of ARN construction.
 
 ```rust
-45Muse aws_arn::builder::{ArnBuilder, ResourceBuilder};
+use aws_arn::builder::{ArnBuilder, ResourceBuilder};
 use aws_arn::known::{Partition, Service};
-use aws_arn::{ResourceName, Identifier};
+use aws_arn::{ResourceName, Identifier, IdentifierLike};
 use std::str::FromStr;
 
 let arn: ResourceName = ArnBuilder::service_id(Service::S3.into())

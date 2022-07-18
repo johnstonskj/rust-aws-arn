@@ -27,6 +27,7 @@ serde = { optional = true, version = "1.0.110", features = ["derive"] }
 [dev-dependencies]
 proptest = "1.0.0"
 pretty_assertions = "1.0.0"
+doc-comment = "0.3"
 
 [dev-dependencies.cargo-husky]
 version = "1"
