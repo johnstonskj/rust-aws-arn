@@ -395,7 +395,6 @@ impl IdentifierLike for AccountIdentifier {
                 && s.chars()
                     .all(|c| c.is_ascii_digit() || c == CHAR_WILD_ONE || c == CHAR_WILD_ANY)
                 && s.chars().any(|c| c == CHAR_WILD_ONE || c == CHAR_WILD_ANY))
-            || s == "aws"
     }
 }
 
@@ -608,7 +607,7 @@ impl FromStr for ResourceName {
                 } else {
                     Some(Identifier::from_str(parts[3])?)
                 },
-                account_id: if parts[4].is_empty() {
+                account_id: if parts[4].is_empty() || parts[4] == "aws" {
                     None
                 } else {
                     Some(AccountIdentifier::from_str(parts[4])?)
