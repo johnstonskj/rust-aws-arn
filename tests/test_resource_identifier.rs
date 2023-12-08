@@ -66,7 +66,7 @@ fn test_resource_identifier_is_valid_variable() {
 fn test_resource_identifier_valid_replacement() {
     let id = ResourceIdentifier::new_unchecked("${greeting} ${name}!");
     let replacements: HashMap<String, String> =
-        HashMap::from_iter(vec![("name".to_string(), "Simon".to_string())].into_iter());
+        HashMap::from_iter(vec![("name".to_string(), "Simon".to_string())]);
     let new_id = id.replace_variables(&replacements).unwrap();
     assert_eq!(new_id.deref(), "${greeting} Simon!");
 }
@@ -75,7 +75,7 @@ fn test_resource_identifier_valid_replacement() {
 fn test_resource_identifier_invalid_replacement() {
     let id = ResourceIdentifier::new_unchecked("${greeting} ${name}!");
     let replacements: HashMap<String, String> =
-        HashMap::from_iter(vec![("name".to_string(), "bad\nвал".to_string())].into_iter());
+        HashMap::from_iter(vec![("name".to_string(), "bad\nвал".to_string())]);
     let new_id = id.replace_variables(&replacements);
     assert!(new_id.is_err());
 }

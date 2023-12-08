@@ -78,3 +78,10 @@ fn test_github_issues_2() {
     );
     assert!(arn.resource.contains_qualified());
 }
+
+/// Check that an AWS managed IAM policy ARN is correctly parsed
+#[test]
+fn test_github_issues_7() {
+    let result = ResourceName::from_str("arn:aws:iam::aws:policy/AWSDirectConnectReadOnlyAccess");
+    assert!(result.is_ok());
+}

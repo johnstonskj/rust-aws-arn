@@ -395,6 +395,7 @@ impl IdentifierLike for AccountIdentifier {
                 && s.chars()
                     .all(|c| c.is_ascii_digit() || c == CHAR_WILD_ONE || c == CHAR_WILD_ANY)
                 && s.chars().any(|c| c == CHAR_WILD_ONE || c == CHAR_WILD_ANY))
+            || s == "aws"
     }
 }
 
@@ -554,7 +555,7 @@ impl Display for ResourceName {
         write!(
             f,
             "{}",
-            vec![
+            [
                 ARN_PREFIX.to_string(),
                 self.partition
                     .as_ref()
